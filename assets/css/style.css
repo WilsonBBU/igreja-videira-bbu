@@ -185,3 +185,57 @@ input:focus,select:focus,textarea:focus{outline:2px solid #a7f3d0;border-color:#
     align-items: center;
   }
 }
+/* ===================== MENU MOBILE ===================== */
+
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 32px;
+  cursor: pointer;
+  padding: 6px 12px;
+  color: var(--verde-escuro);
+  z-index: 9999;
+}
+
+@media (max-width: 860px) {
+
+  .nav {
+    display: none;
+    position: fixed;
+    top: 65px;
+    right: 0;
+    width: 100%;
+    background: #ffffff;
+    flex-direction: column;
+    border-bottom: 1px solid #dcdcdc;
+    z-index: 9998;
+  }
+
+  body.menu-open .nav {
+    display: flex;
+  }
+
+  .nav a {
+    padding: 14px 20px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--verde-escuro); /* <- COR DO TEXTO NO MOBILE */
+    border-bottom: 1px solid #eeeeee;
+  }
+
+  .nav a:hover {
+    background: var(--cinza);
+    color: var(--verde-escuro);
+  }
+
+  .menu-toggle {
+    display: block;
+  }
+
+  .topbar .wrap {
+    justify-content: space-between;
+    align-items: center;
+  }
+}
