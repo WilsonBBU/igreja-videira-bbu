@@ -1,99 +1,120 @@
-/* =========================================================
-   SISTEMA DE ACESSO - IGREJA VIDEIRA BBU
-   Armazena contas no localStorage e controla login e aprovação.
-   ========================================================== */
+(function(){
+  const CFG = window.SITE_CONFIG;
 
-/* ---------- MENU MOBILE ---------- */
-document.addEventListener("DOMContentLoaded", () => {
-  const menuToggle = document.querySelector(".menu-toggle");
-  const body = document.body;
+  // ====== Firebase init ======
+  firebase.initializeApp(CFG.firebaseConfig);
+  const auth = firebase.auth();
+  const db   = firebase.firestore();
+  const st   = firebase.storage();
 
-  if(menuToggle){
-    menuToggle.addEventListener("click", () => {
-      body.classList.toggle("menu-open");
-    });
-  }
-});
+  // ====== Helpers ======
+  const qs  = (s,sc=document)=>sc.querySelector(s);
+  const qsa = (s,sc=document)=>Array.from(sc.querySelectorAll(s));
+  const setTxt = (sel,txt)=> qsa(sel).forEach(e=>e.textContent = txt);
 
+  document.addEventListener('DOMContentLoaded', ()=>{
+    // Header info
+    setTxt('[data-church-name]', CFG.nomeIgreja || 'Igreja Videira');
+    const w = qs('[data-whatsapp-link]');
+    if(w && CFG.whatsapp) w.href = `https://wa.me/${CFG.whatsapp}`;
+    const end = qs('[data-endereco]'); if(end) end.textContent = CFG.endereco||'';
+    const cul = qs('[data-culto]');    if(cul) cul.textContent = CFG.cultoPrincipal||'';
 
-/* ---------- LOGIN ---------- */
-function login() {
-  const email = document.getElementById("email").value.trim();
-  const senha = document.getElementById("senha").value.trim();
-  const msg = document.getElementById("erro");
-
-  const contas = JSON.parse(localStorage.getItem("contas")) || [];
-
-  const conta = contas.find(c => c.email === email && c.senha === senha);
-
-  if (!conta) {
-    msg.style.color = "red";
-    msg.textContent = "E-mail ou senha incorretos.";
-    return;
-  }
-
-  if (!conta.aprovado) {
-    msg.style.color = "red";
-    msg.textContent = "Sua conta ainda aguarda aprovação do pastor.";
-    return;
-  }
-
-  localStorage.setItem("usuarioLogado", JSON.stringify(conta));
-  window.location.href = "dashboard.html";
-}
-
-
-/* ---------- LOGOUT ---------- */
-function logout() {
-  localStorage.removeItem("usuarioLogado");
-  window.location.href = "login.html";
-}
-
-
-/* ---------- DASHBOARD (Pastor e Membros) ---------- */
-
-function carregarPendentes() {
-  const contas = JSON.parse(localStorage.getItem("contas")) || [];
-  const lista = document.getElementById("listaPendentes");
-  if (!lista) return;
-  
-  lista.innerHTML = "";
-
-  contas.forEach((c, index) => {
-    if (!c.aprovado) {
-      lista.innerHTML += `
-      <tr>
-        <td>${c.nome}</td>
-        <td>${c.email}</td>
-        <td><button class="btn btn-primary" onclick="aprovar(${index})">Aprovar</button></td>
-      </tr>`;
+    // YouTube
+    const frame = qs('#youtube-embed');
+    if(frame){
+      frame.src = CFG.youtubeVideoDestaque
+        ? `https://www.youtube.com/embed/${CFG.youtubeVideoDestaque}`
+        : 'about:blank';
     }
   });
-}
 
-function aprovar(i) {
-  const contas = JSON.parse(localStorage.getItem("contas"));
-  contas[i].aprovado = true;
-  localStorage.setItem("contas", JSON.stringify(contas));
-  carregarPendentes();
-}
+  // ====== Auth ======
+  async function signUp({name,email,password,accessKey,phone}) {
+    const cred = await auth.createUserWithEmailAndPassword(email,password);
+    await cred.user.updateProfile({ displayName: name });
+    // define role por chave (se informada)
+    let role = 'membro';
+    if(accessKey === CFG.pastorAccessKey) role = 'pastor';
+    else if(accessKey === CFG.memberAccessKey) role = 'membro';
 
-
-/* ---------- IDENTIFICAÇÃO DE QUEM ESTÁ LOGADO ---------- */
-document.addEventListener("DOMContentLoaded", () => {
-  const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
-  const painelPastor = document.getElementById("painelPastor");
-  const painelMembro = document.getElementById("painelMembro");
-  const nomeUsuario = document.getElementById("nomeUsuario");
-
-  if (nomeUsuario && usuario) {
-    nomeUsuario.textContent = usuario.nome;
+    await db.collection('members').doc(cred.user.uid).set({
+      name, email, phone: phone||'', role, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    return cred.user;
   }
 
-  if (usuario && usuario.email === "videira.bbu@gmail.com") {
-    if (painelPastor) painelPastor.style.display = "block";
-    carregarPendentes();
-  } else {
-    if (painelMembro) painelMembro.style.display = "block";
+  async function signIn({email,password}) {
+    const cred = await auth.signInWithEmailAndPassword(email,password);
+    return cred.user;
   }
-});
+
+  function signOut(){ return auth.signOut(); }
+
+  async function currentUserDoc(){
+    const u = auth.currentUser;
+    if(!u) return null;
+    const doc = await db.collection('members').doc(u.uid).get();
+    return doc.exists ? {id:u.uid, ...doc.data()} : {id:u.uid, name:u.displayName||'', email:u.email, role:'membro'};
+  }
+
+  // ====== Biblioteca ======
+  function listLibrary(){ return db.collection('library').orderBy('createdAt','desc').get().then(s=>s.docs.map(d=>({id:d.id,...d.data()}))); }
+  function addLibrary({title,author,link}){
+    return db.collection('library').add({ title, author:author||'', link:link||'', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  }
+
+  // ====== Estudos ======
+  function listStudies(){ return db.collection('studies').orderBy('dueAt','asc').get().then(s=>s.docs.map(d=>({id:d.id,...d.data()}))); }
+  function addStudy({tema, dueAt, link}){
+    return db.collection('studies').add({
+      tema, link:link||'', dueAt: dueAt ? new Date(dueAt) : null,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }
+
+  // inscrições / conclusão
+  function enrollStudy(studyId, user){
+    return db.collection('completions').doc(`${studyId}_${user.id}`).set({
+      studyId, userId:user.id, userName:user.name, status:'inscrito',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, {merge:true});
+  }
+  function completeStudy(studyId, user){
+    return db.collection('completions').doc(`${studyId}_${user.id}`).set({
+      status:'concluido',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, {merge:true});
+  }
+  function listCompletionsByStudy(studyId){
+    return db.collection('completions').where('studyId','==',studyId).get().then(s=>s.docs.map(d=>({id:d.id,...d.data()})));
+  }
+  function listUserCompletions(userId){
+    return db.collection('completions').where('userId','==',userId).get().then(s=>s.docs.map(d=>({id:d.id,...d.data()})));
+  }
+
+  // Aprovação do pastor + certificado
+  async function approveCompletion(studyId, userId){
+    const id = `${studyId}_${userId}`;
+    await db.collection('completions').doc(id).set({
+      status:'aprovado',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, {merge:true});
+    // cria certificado
+    const certRef = await db.collection('certificates').add({
+      studyId, userId, issuedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    return certRef.id;
+  }
+
+  // ====== Expor no escopo global ======
+  window.App = {
+    CFG, auth, db, st,
+    signUp, signIn, signOut, currentUserDoc,
+    listLibrary, addLibrary,
+    listStudies, addStudy,
+    enrollStudy, completeStudy,
+    listCompletionsByStudy, listUserCompletions,
+    approveCompletion
+  };
+})();

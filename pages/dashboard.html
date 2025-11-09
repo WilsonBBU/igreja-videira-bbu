@@ -1,126 +1,113 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel | Igreja Videira BBU</title>
-  <link rel="stylesheet" href="../assets/css/style.css">
-  <script defer src="../assets/js/main.js"></script>
-</head>
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - Membro</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<!-- Firebase + Config + App -->
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+<script src="../config.js"></script>
+<script defer src="../assets/js/main.js"></script>
+</head><body>
+<header class="topbar"><div class="container wrap">
+  <div class="brand"><img src="../assets/img/logo.png" class="logo"><div class="title">
+    <h1 data-church-name></h1><small>Área do Membro</small></div></div>
+  <nav class="nav">
+    <a href="../index.html">Início</a>
+    <a id="btnSair" class="btn btn-ghost">Sair</a>
+  </nav>
+</div></header>
 
-<body>
+<main class="section"><div class="container">
+  <div id="boxUser" class="notice">Carregando...</div>
 
-<header class="topbar">
-  <div class="container wrap">
-    <div class="brand">
-      <h1>Igreja Videira BBU</h1>
-      <small>Painel de acesso</small>
-    </div>
+  <h3>Biblioteca</h3>
+  <div id="listaBiblioteca" class="grid-cards"></div>
 
-    <button class="menu-toggle" onclick="document.body.classList.toggle('menu-open')">☰</button>
+  <hr style="margin:20px 0">
 
-    <nav class="nav">
-      <a href="../index.html">Início</a>
-      <a href="biblioteca.html">Biblioteca</a>
-      <a href="estudos.html">Sala de Estudos</a>
-      <a href="#" onclick="logout()">Sair</a>
-    </nav>
-  </div>
-</header>
+  <h3>Estudos</h3>
+  <div id="listaEstudos" class="grid-cards"></div>
 
-<main class="container">
+  <hr style="margin:20px 0">
 
-  <h2>Bem-vindo, <span id="nomeUsuario"></span>!</h2>
+  <h3>Meus Certificados</h3>
+  <div id="listaCertificados" class="grid-cards"></div>
+</div></main>
 
-  <!-- ==== ÁREA APENAS PARA O PASTOR ==== -->
-  <section id="painelPastor" style="display:none; margin-top:35px;">
-    <h3>Solicitações de Cadastro</h3>
-
-    <input type="text" id="busca" class="input-busca" placeholder="🔍 Buscar por nome ou e-mail" onkeyup="filtrar()">
-
-    <table class="tabela">
-      <thead>
-        <tr>
-          <th>Nome</th>
-          <th>E-mail</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody id="listaPendentes"></tbody>
-    </table>
-  </section>
-
-  <!-- ==== ÁREA PARA MEMBROS ==== -->
-  <section id="painelMembro" style="margin-top:35px;">
-    <h3>Área do Membro</h3>
-    <p>Acesse conteúdos, devocionais, biblioteca e sala de estudos.</p>
-  </section>
-
-</main>
-
-<footer class="footer">
-  <div class="container center">
-    © <span id="year"></span> Igreja Videira BBU
-  </div>
-</footer>
-
-<script>document.getElementById('year').textContent = new Date().getFullYear()</script>
-
+<footer class="footer"><div class="container"><small>© <span id="year"></span></small></div></footer>
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
-  if (!usuario) return window.location.href = "login.html";
+document.getElementById('year').textContent=new Date().getFullYear();
+const out = document.getElementById('btnSair');
+out.addEventListener('click', ()=> window.App.signOut().then(()=>location.href='login.html'));
 
-  document.getElementById("nomeUsuario").textContent = usuario.nome;
-
-  if (usuario.email === "videira.bbu@gmail.com") {
-    document.getElementById("painelPastor").style.display = "block";
-    carregarPendentes();
-  } else {
-    document.getElementById("painelMembro").style.display = "block";
-  }
-});
-
-function carregarPendentes() {
-  const contas = JSON.parse(localStorage.getItem("contas")) || [];
-  const lista = document.getElementById("listaPendentes");
-  lista.innerHTML = "";
-
-  contas.forEach((c, index) => {
-    if (!c.aprovado) {
-      lista.innerHTML += `
-      <tr>
-        <td>${c.nome}</td>
-        <td>${c.email}</td>
-        <td>
-          <button class="btn btn-primary" onclick="aprovar(${index})">Aprovar</button>
-        </td>
-      </tr>`;
-    }
+(async function(){
+  const userAuth = await new Promise(res=>{
+    const u = window.App.auth.currentUser;
+    if (u) return res(u);
+    const unsub = window.App.auth.onAuthStateChanged(x=>{unsub();res(x);});
   });
-}
+  const box = document.getElementById('boxUser');
+  if(!userAuth){ box.className='error'; box.textContent='Você não está logado.'; return; }
 
-function aprovar(i) {
-  const contas = JSON.parse(localStorage.getItem("contas"));
-  contas[i].aprovado = true;
-  localStorage.setItem("contas", JSON.stringify(contas));
-  carregarPendentes();
-}
+  const me = await window.App.currentUserDoc();
+  box.className = 'success';
+  box.innerHTML = `Bem-vindo, <strong>${me.name||me.email}</strong> — Perfil: ${me.role}`;
 
-function filtrar() {
-  const termo = document.getElementById("busca").value.toLowerCase();
-  const linhas = document.querySelectorAll("#listaPendentes tr");
+  // Biblioteca
+  const livros = await window.App.listLibrary();
+  document.getElementById('listaBiblioteca').innerHTML =
+    (livros.length? livros.map(x=>`
+      <div class="card">
+        <h4>${x.title}</h4>
+        <p>${x.author||''}</p>
+        ${x.link?`<a href="${x.link}" target="_blank">Abrir</a>`:''}
+      </div>`).join('') : '<div class="notice">Sem itens ainda.</div>');
 
-  linhas.forEach(linha => {
-    linha.style.display = linha.innerText.toLowerCase().includes(termo) ? "" : "none";
+  // Estudos
+  const estudos = await window.App.listStudies();
+  const minhas = await window.App.listUserCompletions(me.id);
+  const statusMap = Object.fromEntries(minhas.map(m=>[m.studyId,m.status]));
+  document.getElementById('listaEstudos').innerHTML =
+    (estudos.length? estudos.map(s=>{
+      const due = s.dueAt ? new Date(s.dueAt.seconds? s.dueAt.seconds*1000 : s.dueAt).toLocaleString() : '—';
+      const st  = statusMap[s.id] || 'não inscrito';
+      const btnInscrever = st==='não inscrito' ? `<button class="btn btn-primary" data-enroll="${s.id}">Inscrever</button>` : '';
+      const btnConcluir  = st==='inscrito' ? `<button class="btn btn-ghost" data-complete="${s.id}">Marcar como concluído</button>` : '';
+      return `
+        <div class="card">
+          <h4>${s.tema}</h4>
+          <p>Prazo: ${due}</p>
+          ${s.link?`<p><a href="${s.link}" target="_blank">Acessar conteúdo</a></p>`:''}
+          <p>Status: <strong>${st}</strong></p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">${btnInscrever}${btnConcluir}</div>
+        </div>`;
+    }).join('') : '<div class="notice">Sem estudos.</div>');
+
+  // Ações
+  document.querySelectorAll('[data-enroll]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      await window.App.enrollStudy(b.dataset.enroll, me);
+      location.reload();
+    });
   });
-}
+  document.querySelectorAll('[data-complete]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      await window.App.completeStudy(b.dataset.complete, me);
+      location.reload();
+    });
+  });
 
-function logout() {
-  localStorage.removeItem("usuarioLogado");
-  window.location.href = "login.html";
-}
+  // Certificados do usuário
+  const q = await window.App.db.collection('certificates').where('userId','==',me.id).get();
+  const certs = q.docs.map(d=>({id:d.id,...d.data()}));
+  document.getElementById('listaCertificados').innerHTML =
+    (certs.length? certs.map(c=>`
+      <div class="card">
+        <h4>Certificado</h4>
+        <p>Estudo: ${c.studyId}</p>
+        <a href="certificado.html?cert=${c.id}" target="_blank">Ver/baixar</a>
+      </div>`).join('') : '<div class="notice">Você ainda não possui certificados aprovados.</div>');
+})();
 </script>
-
-</body>
-</html>
+</body></html>

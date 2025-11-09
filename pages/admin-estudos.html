@@ -1,0 +1,133 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel do Pastor - Estudos</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<!-- Firebase + Config + App -->
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+<script src="../config.js"></script>
+<script defer src="../assets/js/main.js"></script>
+</head><body>
+<header class="topbar"><div class="container wrap">
+  <div class="brand"><img src="../assets/img/logo.png" class="logo"><div class="title">
+    <h1 data-church-name></h1><small>Painel do Pastor</small></div></div>
+  <nav class="nav">
+    <a href="../index.html">Início</a>
+    <a href="dashboard.html">Área do Membro</a>
+    <a id="btnSair" class="btn btn-ghost">Sair</a>
+  </nav>
+</div></header>
+
+<main class="section"><div class="container">
+  <div id="boxRole" class="notice">Verificando permissão...</div>
+
+  <div id="adminArea" style="display:none">
+    <div class="card">
+      <h4>Novo Estudo</h4>
+      <form id="formStudy">
+        <input required name="tema" placeholder="Tema do estudo">
+        <input required type="datetime-local" name="dueAt">
+        <input name="link" placeholder="Link do conteúdo (YouTube/Drive)">
+        <button class="btn btn-primary">Criar</button>
+      </form>
+      <div id="msgStudy" style="margin-top:8px"></div>
+    </div>
+
+    <h3 style="margin-top:20px">Estudos</h3>
+    <div id="listaEstudos" class="grid-cards"></div>
+  </div>
+</div></main>
+
+<footer class="footer"><div class="container"><small>© <span id="year"></span></small></div></footer>
+<script>
+document.getElementById('year').textContent=new Date().getFullYear();
+document.getElementById('btnSair').addEventListener('click', ()=> window.App.signOut().then(()=>location.href='login.html'));
+
+(async function(){
+  const meAuth = await new Promise(res=>{
+    const u = window.App.auth.currentUser;
+    if (u) return res(u);
+    const unsub = window.App.auth.onAuthStateChanged(x=>{unsub();res(x);});
+  });
+  const roleBox = document.getElementById('boxRole');
+  const area = document.getElementById('adminArea');
+  if(!meAuth){ roleBox.className='error'; roleBox.textContent='Faça login.'; return; }
+
+  const me = await window.App.currentUserDoc();
+  if(me.role!=='pastor'){
+    roleBox.className='error';
+    roleBox.textContent='Acesso negado. Apenas pastor.';
+    return;
+  }
+  roleBox.remove(); area.style.display='block';
+
+  // Criar estudo
+  const form = document.getElementById('formStudy');
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const f = new FormData(form);
+    const tema = f.get('tema').trim();
+    const dueAt = f.get('dueAt');
+    const link  = f.get('link').trim();
+    const box = document.getElementById('msgStudy');
+    try{
+      await window.App.addStudy({tema,dueAt,link});
+      box.innerHTML = '<div class="success">Criado com sucesso.</div>';
+      form.reset();
+      renderEstudos();
+    }catch(err){
+      box.innerHTML = '<div class="error">Erro: '+(err.message||err)+'</div>';
+    }
+  });
+
+  // Render estudos + inscritos
+  async function renderEstudos(){
+    const estudos = await window.App.listStudies();
+    const cont = document.getElementById('listaEstudos');
+    cont.innerHTML = estudos.map(s=>{
+      const due = s.dueAt ? new Date(s.dueAt.seconds? s.dueAt.seconds*1000 : s.dueAt).toLocaleString() : '—';
+      return `<div class="card">
+        <h4>${s.tema}</h4>
+        <p>Prazo: ${due}</p>
+        ${s.link?`<p><a href="${s.link}" target="_blank">Abrir conteúdo</a></p>`:''}
+        <div id="subs_${s.id}">Carregando inscritos...</div>
+      </div>`;
+    }).join('') || '<div class="notice">Nenhum estudo.</div>';
+
+    // carregar inscritos de cada estudo
+    for (const s of estudos){
+      const box = document.getElementById('subs_'+s.id);
+      const subs = await window.App.listCompletionsByStudy(s.id);
+      if(!subs.length){ box.innerHTML = '<div class="notice">Sem inscritos.</div>'; continue; }
+      box.innerHTML = `
+        <table class="table">
+          <thead><tr><th>Nome</th><th>Status</th><th>Ação</th></tr></thead>
+          <tbody>
+            ${subs.map(m=>`
+              <tr>
+                <td>${m.userName || m.userId}</td>
+                <td>${m.status}</td>
+                <td>
+                ${m.status==='concluido' ? `<button class="btn btn-primary" data-approve="${s.id}|${m.userId}">Aprovar e emitir certificado</button>`:''}
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    // aprovar
+    document.querySelectorAll('[data-approve]').forEach(b=>{
+      b.addEventListener('click', async ()=>{
+        const [studyId,userId] = b.dataset.approve.split('|');
+        const certId = await window.App.approveCompletion(studyId, userId);
+        alert('Aprovado! Certificado gerado: '+certId);
+        renderEstudos();
+      });
+    });
+  }
+  renderEstudos();
+})();
+</script>
+</body></html>

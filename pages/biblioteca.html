@@ -1,22 +1,57 @@
-<!DOCTYPE html><html lang="pt-BR"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Biblioteca - Igreja Videira BBU</title>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biblioteca - Videira BBU</title>
 <link rel="stylesheet" href="../assets/css/style.css">
-<script src="../config.js"></script><script defer src="../assets/js/main.js"></script>
-</head><body>
-<header class="topbar"><div class="container wrap">
-  <div class="brand"><img src="../assets/img/logo.png" class="logo"><div class="title">
-    <h1 data-church-name></h1><small>Materiais e mensagens</small></div></div>
-  <nav class="nav">
-    <a href="../index.html">Início</a><a href="login.html">Entrar</a>
-  </nav>
-</div></header>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
 
-<main class="section"><div class="container">
-  <div class="notice">Área para membros. Faça login para visualizar e baixar a biblioteca completa.</div>
-  <p><a class="btn btn-primary" href="login.html">Entrar</a> <a class="btn btn-ghost" href="cadastro.html">Cadastrar</a></p>
-</div></main>
+<body>
 
-<footer class="footer"><div class="container"><small>© <span id="year"></span></small></div></footer>
-<script>document.getElementById('year').textContent=new Date().getFullYear()</script>
-</body></html>
+<div class="layout">
+
+  <!-- Sidebar importada do dashboard -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="../assets/img/logo.png" class="logo-side">
+      <h2>Videira BBU</h2>
+    </div>
+
+    <nav class="menu">
+      <a href="dashboard.html"><i data-lucide="home"></i> Início</a>
+      <a class="active" href="biblioteca.html"><i data-lucide="book"></i> Biblioteca</a>
+      <a href="estudos.html"><i data-lucide="graduation-cap"></i> Sala de Estudos</a>
+      <a href="devocional.html"><i data-lucide="heart"></i> Devocional</a>
+      <a href="ministerios.html"><i data-lucide="users"></i> Ministérios</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <header class="top">
+      <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+      <h3>Biblioteca 📚</h3>
+    </header>
+
+    <section class="content">
+      <h2>Livros, Estudos e Apostilas</h2>
+      <p>Todo o material para crescer em conhecimento e fé.</p>
+
+      <div id="listaArquivos" class="grid-cards"></div>
+    </section>
+  </main>
+
+</div>
+
+<!-- Firebase (Compat para facilitar em HTML puro) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
+
+<script type="module" src="assets/js/firebase.js"></script>
+<script type="module" src="../assets/js/biblioteca.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

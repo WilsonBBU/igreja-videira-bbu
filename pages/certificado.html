@@ -1,0 +1,148 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Certificado</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+<script src="../config.js"></script>
+<script src="../assets/js/main.js"></script>
+<!-- QRCode -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  .cert-wrap{max-width:900px;margin:20px auto;background:#fff;padding:24px;border:1px solid #e5e7eb;border-radius:12px}
+  .cert-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .cert-title{font-size:28px;font-weight:900;color:#145c3f;margin:0}
+  .cert-body{margin-top:12px}
+  .cert-qr{margin-top:16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+</style>
+</head><body>
+<div class="cert-wrap">
+  <div class="cert-head">
+    <div>
+      <h1 class="cert-title" data-church-name></h1>
+      <small>Certificado de Conclusão</small>
+    </div>
+    <img src="../assets/img/logo.png" style="height:56px">
+  </div>
+  <div class="cert-body" id="certBody">Carregando...</div>
+  <div class="cert-qr">
+    <div id="qrcode"></div>
+    <div><small>Verifique este certificado escaneando o QR Code.</small></div>
+  </div>
+</div>
+
+<script>
+(async function(){
+  // pega ?cert=ID
+  const params = new URLSearchParams(location.search);
+  const certId = params.get('cert');
+  const CFG = window.SITE_CONFIG;
+
+  if(!certId){
+    document.getElementById('certBody').innerHTML = '<div class="error">Certificado não encontrado.</div>';
+    return;
+  }
+  // busca doc
+  const doc = await window.App.db.collection('certificates').doc(certId).get();
+  if(!doc.exists){
+    document.getElementById('certBody').innerHTML = '<div class="error">Certificado inválido.</div>';
+    return;
+  }
+  const c = doc.data();
+
+  // pega nome do estudo
+  const s = await window.App.db.collection('studies').doc(c.studyId).get();
+  const tema = s.exists ? (s.data().tema || c.studyId) : c.studyId;
+
+  // pega nome do usuário
+  const u = await window.App.db.collection('members').doc(c.userId).get();
+  const nome = u.exists ? (u.data().name || c.userId) : c.userId;
+
+  const issued = c.issuedAt?.toDate ? c.issuedAt.toDate().toLocaleString() : '—';
+
+  document.getElementById('certBody').innerHTML = `
+    <p>Certificamos que <strong>${nome}</strong> concluiu o estudo <strong>${tema}</strong>.</p>
+    <p>Emitido por <strong>${CFG.nomeIgreja}</strong> em ${issued}.</p>
+    <p>ID do certificado: <code>${doc.id}</code></p>
+  `;
+
+  // QR para esta própria URL (verificação online)
+  const url = location.href;
+  new QRCode(document.getElementById("qrcode"), { text: url, width: 128, height: 128 });
+})();
+</script>
+</body></html>
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Certificado</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+<script src="../config.js"></script>
+<script src="../assets/js/main.js"></script>
+<!-- QRCode -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  .cert-wrap{max-width:900px;margin:20px auto;background:#fff;padding:24px;border:1px solid #e5e7eb;border-radius:12px}
+  .cert-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .cert-title{font-size:28px;font-weight:900;color:#145c3f;margin:0}
+  .cert-body{margin-top:12px}
+  .cert-qr{margin-top:16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+</style>
+</head><body>
+<div class="cert-wrap">
+  <div class="cert-head">
+    <div>
+      <h1 class="cert-title" data-church-name></h1>
+      <small>Certificado de Conclusão</small>
+    </div>
+    <img src="../assets/img/logo.png" style="height:56px">
+  </div>
+  <div class="cert-body" id="certBody">Carregando...</div>
+  <div class="cert-qr">
+    <div id="qrcode"></div>
+    <div><small>Verifique este certificado escaneando o QR Code.</small></div>
+  </div>
+</div>
+
+<script>
+(async function(){
+  // pega ?cert=ID
+  const params = new URLSearchParams(location.search);
+  const certId = params.get('cert');
+  const CFG = window.SITE_CONFIG;
+
+  if(!certId){
+    document.getElementById('certBody').innerHTML = '<div class="error">Certificado não encontrado.</div>';
+    return;
+  }
+  // busca doc
+  const doc = await window.App.db.collection('certificates').doc(certId).get();
+  if(!doc.exists){
+    document.getElementById('certBody').innerHTML = '<div class="error">Certificado inválido.</div>';
+    return;
+  }
+  const c = doc.data();
+
+  // pega nome do estudo
+  const s = await window.App.db.collection('studies').doc(c.studyId).get();
+  const tema = s.exists ? (s.data().tema || c.studyId) : c.studyId;
+
+  // pega nome do usuário
+  const u = await window.App.db.collection('members').doc(c.userId).get();
+  const nome = u.exists ? (u.data().name || c.userId) : c.userId;
+
+  const issued = c.issuedAt?.toDate ? c.issuedAt.toDate().toLocaleString() : '—';
+
+  document.getElementById('certBody').innerHTML = `
+    <p>Certificamos que <strong>${nome}</strong> concluiu o estudo <strong>${tema}</strong>.</p>
+    <p>Emitido por <strong>${CFG.nomeIgreja}</strong> em ${issued}.</p>
+    <p>ID do certificado: <code>${doc.id}</code></p>
+  `;
+
+  // QR para esta própria URL (verificação online)
+  const url = location.href;
+  new QRCode(document.getElementById("qrcode"), { text: url, width: 128, height: 128 });
+})();
+</script>
+</body></html>
