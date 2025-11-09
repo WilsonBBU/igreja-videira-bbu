@@ -134,3 +134,54 @@ input:focus,select:focus,textarea:focus{outline:2px solid #a7f3d0;border-color:#
     justify-content: space-between;
   }
 }
+/* ===================== MENU MOBILE ===================== */
+
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 32px;
+  cursor: pointer;
+  padding: 6px 12px;
+  color: var(--verde-escuro);
+  z-index: 9999;
+}
+
+@media (max-width: 860px) {
+
+  /* Esconde o menu no celular */
+  .nav {
+    display: none;
+    position: fixed;
+    top: 70px;
+    right: 0;
+    width: 100%;
+    background: #ffffff;
+    flex-direction: column;
+    padding: 10px 0;
+    border-bottom: 1px solid #e6e8eb;
+    z-index: 9998;
+  }
+
+  /* Quando o body recebe a classe menu-open → mostra o menu */
+  body.menu-open .nav {
+    display: flex;
+  }
+
+  .nav a {
+    padding: 14px 20px;
+    text-align: center;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  /* Mostra o botão hamburguer no celular */
+  .menu-toggle {
+    display: block;
+  }
+
+  /* Ajusta o cabeçalho */
+  .topbar .wrap {
+    justify-content: space-between;
+    align-items: center;
+  }
+}
