@@ -1,65 +1,107 @@
-<!DOCTYPE html><html lang="pt-BR"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cadastre-se - Igreja Videira BBU</title>
 <link rel="stylesheet" href="../assets/css/style.css">
-<!-- Firebase + Config + App -->
+
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
+
+<!-- Config do site -->
 <script src="../config.js"></script>
-<script defer src="../assets/js/main.js"></script>
-</head><body>
-<header class="topbar"><div class="container wrap">
-  <div class="brand"><img src="../assets/img/logo.png" class="logo"><div class="title">
-    <h1 data-church-name></h1><small>Seja parte da família</small></div></div>
-  <nav class="nav">
-    <a href="../index.html">Início</a>
-    <a href="login.html">Entrar</a>
-  </nav>
-</div></header>
 
-<main class="section"><div class="container" style="max-width:640px">
-  <div class="card">
-    <h4>Cadastro</h4>
-    <form id="formCadastro">
-      <input required name="name" placeholder="Nome completo">
-      <input required name="email" type="email" placeholder="E-mail">
-      <input name="phone" placeholder="Telefone (opcional)">
-      <input required name="password" type="password" placeholder="Senha">
-      <input required name="password2" type="password" placeholder="Confirmar senha">
-      <input name="accessKey" placeholder="Chave de acesso (opcional)">
-      <button class="btn btn-primary btn-full" type="submit">Criar conta</button>
-    </form>
-    <div id="msgCadastro" style="margin-top:10px"></div>
+<!-- Inicialização + funções globais -->
+<script src="../assets/js/main.js"></script>
+
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container wrap">
+    <div class="brand">
+      <img src="../assets/img/logo.png" class="logo">
+      <div class="title">
+        <h1 data-church-name></h1>
+        <small>Seja parte da família</small>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a href="../index.html">Início</a>
+      <a href="login.html">Entrar</a>
+    </nav>
   </div>
-</div></main>
+</header>
 
-<footer class="footer"><div class="container"><small>© <span id="year"></span></small></div></footer>
+<main class="section">
+  <div class="container" style="max-width:600px;">
+    <div class="card">
+      <h3>Cadastro</h3>
+
+      <form id="formCadastro">
+
+        <input name="name" type="text" placeholder="Nome completo" required>
+        <input name="email" type="email" placeholder="E-mail" required>
+        <input name="phone" type="text" placeholder="Telefone (opcional)">
+        
+        <input name="password" type="password" placeholder="Senha" required>
+        <input name="password2" type="password" placeholder="Confirmar senha" required>
+
+        <input name="accessKey" type="text" placeholder="Chave de acesso (se tiver)">
+        
+        <button type="submit" class="btn btn-primary btn-full">Criar conta</button>
+      </form>
+
+      <div id="msgCadastro" style="margin-top:12px"></div>
+
+      <p style="margin-top:18px;">
+        Já tem conta? <a href="login.html">Entre aqui</a>
+      </p>
+
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <small>© <span id="year"></span> Igreja Videira BBU</small>
+  </div>
+</footer>
+
 <script>
-document.getElementById('year').textContent=new Date().getFullYear();
+document.getElementById("year").textContent = new Date().getFullYear();
 
-const form = document.getElementById('formCadastro');
-form.addEventListener('submit', async (e)=>{
+document.getElementById("formCadastro").addEventListener("submit", async (e)=>{
   e.preventDefault();
-  const f = new FormData(form);
-  const name = f.get('name').trim();
-  const email = f.get('email').trim();
-  const phone = f.get('phone').trim();
-  const password = f.get('password');
-  const password2= f.get('password2');
-  const accessKey = f.get('accessKey').trim();
-  const box = document.getElementById('msgCadastro');
+  
+  const f = new FormData(e.target);
+  const name = f.get("name").trim();
+  const email = f.get("email").trim();
+  const phone = f.get("phone").trim();
+  const password = f.get("password");
+  const password2 = f.get("password2");
+  const accessKey = f.get("accessKey").trim();
+  const msg = document.getElementById("msgCadastro");
 
   if(password !== password2){
-    box.innerHTML = '<div class="error">As senhas não conferem.</div>'; return;
+    msg.innerHTML = '<div class="error">As senhas não conferem.</div>';
+    return;
   }
+
   try{
     await window.App.signUp({name,email,password,accessKey,phone});
-    box.innerHTML = '<div class="success">Cadastro realizado! Faça login.</div>';
-    form.reset();
+    msg.innerHTML = '<div class="success">Cadastro realizado! Agora faça login.</div>';
+    e.target.reset();
   }catch(err){
-    box.innerHTML = '<div class="error">Erro: '+(err.message||err)+'</div>';
+    msg.innerHTML = '<div class="error">Erro: '+err.message+'</div>';
   }
 });
 </script>
-</body></html>
+
+</body>
+</html>
