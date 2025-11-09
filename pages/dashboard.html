@@ -1,103 +1,126 @@
-<!DOCTYPE html><html lang="pt-BR"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard - Igreja Videira BBU</title>
-<link rel="stylesheet" href="../assets/css/style.css">
-<script src="../config.js"></script><script defer src="../assets/js/main.js"></script>
-</head><body>
-<header class="topbar"><div class="container wrap">
-  <div class="brand"><img src="../assets/img/logo.png" class="logo"><div class="title">
-    <h1 data-church-name></h1><small>Área do Membro</small></div></div>
-  <nav class="nav">
-    <a href="../index.html">Início</a>
-    <a href="#" id="btnSair">Sair</a>
-  </nav>
-</div></header>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel | Igreja Videira BBU</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script defer src="../assets/js/main.js"></script>
+</head>
 
-<main class="section"><div class="container">
-  <div id="boxUser" class="notice">Carregando...</div>
+<body>
 
-  <h3>Biblioteca</h3>
-  <div class="grid-cards" id="listaBiblioteca"></div>
-
-  <hr style="margin:24px 0">
-
-  <h3>Sala de Estudos</h3>
-  <div class="grid-cards" id="listaEstudos"></div>
-
-  <div id="adminPanel" style="display:none; margin-top:24px">
-    <h3>Painel do Pastor</h3>
-    <div class="card">
-      <h4>Novo item na Biblioteca</h4>
-      <form id="formAddLivro">
-        <input required name="titulo" placeholder="Título do material">
-        <input name="autor" placeholder="Autor (opcional)">
-        <input name="link" placeholder="Link (YouTube/Drive/PDF)">
-        <button class="btn btn-primary">Adicionar</button>
-      </form>
+<header class="topbar">
+  <div class="container wrap">
+    <div class="brand">
+      <h1>Igreja Videira BBU</h1>
+      <small>Painel de acesso</small>
     </div>
-    <div class="card">
-      <h4>Agendar Estudo</h4>
-      <form id="formAddEstudo">
-        <input required name="tema" placeholder="Tema">
-        <input required name="data" type="datetime-local">
-        <input name="link" placeholder="Link de videoconferência">
-        <button class="btn btn-primary">Agendar</button>
-      </form>
-    </div>
+
+    <button class="menu-toggle" onclick="document.body.classList.toggle('menu-open')">☰</button>
+
+    <nav class="nav">
+      <a href="../index.html">Início</a>
+      <a href="biblioteca.html">Biblioteca</a>
+      <a href="estudos.html">Sala de Estudos</a>
+      <a href="#" onclick="logout()">Sair</a>
+    </nav>
   </div>
-</div></main>
+</header>
 
-<footer class="footer"><div class="container"><small>© <span id="year"></span></small></div></footer>
+<main class="container">
+
+  <h2>Bem-vindo, <span id="nomeUsuario"></span>!</h2>
+
+  <!-- ==== ÁREA APENAS PARA O PASTOR ==== -->
+  <section id="painelPastor" style="display:none; margin-top:35px;">
+    <h3>Solicitações de Cadastro</h3>
+
+    <input type="text" id="busca" class="input-busca" placeholder="🔍 Buscar por nome ou e-mail" onkeyup="filtrar()">
+
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>E-mail</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="listaPendentes"></tbody>
+    </table>
+  </section>
+
+  <!-- ==== ÁREA PARA MEMBROS ==== -->
+  <section id="painelMembro" style="margin-top:35px;">
+    <h3>Área do Membro</h3>
+    <p>Acesse conteúdos, devocionais, biblioteca e sala de estudos.</p>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="container center">
+    © <span id="year"></span> Igreja Videira BBU
+  </div>
+</footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear()</script>
+
 <script>
-document.getElementById('year').textContent=new Date().getFullYear();
+document.addEventListener("DOMContentLoaded", () => {
+  const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+  if (!usuario) return window.location.href = "login.html";
 
-const user = JSON.parse(localStorage.getItem('videira_user')||"null");
-const boxUser = document.getElementById('boxUser');
-const adminPanel = document.getElementById('adminPanel');
-const listaBib = document.getElementById('listaBiblioteca');
-const listaEst = document.getElementById('listaEstudos');
+  document.getElementById("nomeUsuario").textContent = usuario.nome;
 
-if(!user){
-  boxUser.className='error';
-  boxUser.textContent='Você não está logado. Faça login para acessar.';
-} else {
-  boxUser.className='success';
-  boxUser.innerHTML = 'Bem-vindo, <strong>'+user.name+'</strong> — Perfil: '+user.role;
-  if(user.role==='pastor'){ adminPanel.style.display='block'; }
-  carregarDados();
+  if (usuario.email === "videira.bbu@gmail.com") {
+    document.getElementById("painelPastor").style.display = "block";
+    carregarPendentes();
+  } else {
+    document.getElementById("painelMembro").style.display = "block";
+  }
+});
+
+function carregarPendentes() {
+  const contas = JSON.parse(localStorage.getItem("contas")) || [];
+  const lista = document.getElementById("listaPendentes");
+  lista.innerHTML = "";
+
+  contas.forEach((c, index) => {
+    if (!c.aprovado) {
+      lista.innerHTML += `
+      <tr>
+        <td>${c.nome}</td>
+        <td>${c.email}</td>
+        <td>
+          <button class="btn btn-primary" onclick="aprovar(${index})">Aprovar</button>
+        </td>
+      </tr>`;
+    }
+  });
 }
 
-document.getElementById('btnSair').addEventListener('click', ()=>{
-  localStorage.removeItem('videira_user'); location.href='login.html';
-});
-
-async function carregarDados(){
-  try{
-    const livros = await window.AppAPI.api('/library','GET');
-    const estudos = await window.AppAPI.api('/study-sessions','GET');
-    renderCards(livros, listaBib, (x)=>\`
-      <div class="card"><h4>\${x.titulo}</h4><p>\${x.autor||''}</p>
-      \${x.link?'<a href="'+x.link+'" target="_blank">Abrir</a>':''}</div>\`);
-    renderCards(estudos, listaEst, (x)=>\`
-      <div class="card"><h4>\${x.tema}</h4><p>\${new Date(x.data).toLocaleString()}</p>
-      \${x.link?'<a href="'+x.link+'" target="_blank">Entrar</a>':''}</div>\`);
-  }catch(e){ console.error(e); }
+function aprovar(i) {
+  const contas = JSON.parse(localStorage.getItem("contas"));
+  contas[i].aprovado = true;
+  localStorage.setItem("contas", JSON.stringify(contas));
+  carregarPendentes();
 }
-function renderCards(arr, el, tpl){ el.innerHTML = (arr||[]).map(tpl).join('')||'<div class="notice">Sem itens ainda.</div>'; }
 
-const fLivro = document.getElementById('formAddLivro');
-if(fLivro) fLivro.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const data = Object.fromEntries(new FormData(fLivro).entries());
-  await window.AppAPI.api('/library','POST', data);
-  fLivro.reset(); carregarDados();
-});
-const fEst = document.getElementById('formAddEstudo');
-if(fEst) fEst.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const data = Object.fromEntries(new FormData(fEst).entries());
-  await window.AppAPI.api('/study-sessions','POST', data);
-  fEst.reset(); carregarDados();
-});
+function filtrar() {
+  const termo = document.getElementById("busca").value.toLowerCase();
+  const linhas = document.querySelectorAll("#listaPendentes tr");
+
+  linhas.forEach(linha => {
+    linha.style.display = linha.innerText.toLowerCase().includes(termo) ? "" : "none";
+  });
+}
+
+function logout() {
+  localStorage.removeItem("usuarioLogado");
+  window.location.href = "login.html";
+}
 </script>
-</body></html>
+
+</body>
+</html>

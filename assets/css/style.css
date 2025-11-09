@@ -239,3 +239,40 @@ input:focus,select:focus,textarea:focus{outline:2px solid #a7f3d0;border-color:#
     align-items: center;
   }
 }
+/* ===== DASHBOARD ADMIN MODERNO ===== */
+
+.input-busca {
+  width: 100%;
+  padding: 12px;
+  margin: 15px 0;
+  border-radius: 6px;
+  border: 1px solid #bfc7d1;
+  font-size: 16px;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.tabela th {
+  background: var(--verde-escuro);
+  color: white;
+  padding: 12px;
+  text-align: left;
+}
+
+.tabela td {
+  padding: 12px;
+  border-bottom: 1px solid #e6e8eb;
+}
+
+.tabela tr:hover {
+  background: #f7f9fa;
+}
+@media (max-width: 768px){
+  .nav { flex-direction: column; }
+  .hero-img h2 { font-size: 28px; }
+  .hero-video .grid { grid-template-columns: 1fr; }
+}
