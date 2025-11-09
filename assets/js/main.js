@@ -1,88 +1,99 @@
-(function(){
-  const cfg = window.SITE_CONFIG || {};
-  // Preenche itens globais (nav / footer)
-  document.addEventListener('DOMContentLoaded', () => {
-    const churchNameEls = document.querySelectorAll('[data-church-name]');
-    churchNameEls.forEach(el => el.textContent = cfg.nomeIgreja || 'Igreja Videira');
+/* =========================================================
+   SISTEMA DE ACESSO - IGREJA VIDEIRA BBU
+   Armazena contas no localStorage e controla login e aprovação.
+   ========================================================== */
 
-    const whatsEls = document.querySelectorAll('[data-whatsapp-link]');
-    whatsEls.forEach(el => {
-      if(cfg.whatsapp){
-        el.href = `https://wa.me/${cfg.whatsapp}`;
-      } else {
-        el.style.display = 'none';
-      }
+/* ---------- MENU MOBILE ---------- */
+document.addEventListener("DOMContentLoaded", () => {
+  const menuToggle = document.querySelector(".menu-toggle");
+  const body = document.body;
+
+  if(menuToggle){
+    menuToggle.addEventListener("click", () => {
+      body.classList.toggle("menu-open");
     });
+  }
+});
 
-    const enderecoEl = document.querySelector('[data-endereco]');
-    if(enderecoEl && cfg.endereco){ enderecoEl.textContent = cfg.endereco; }
 
-    const cultoEl = document.querySelector('[data-culto]');
-    if(cultoEl && cfg.cultoPrincipal){ cultoEl.textContent = cfg.cultoPrincipal; }
+/* ---------- LOGIN ---------- */
+function login() {
+  const email = document.getElementById("email").value.trim();
+  const senha = document.getElementById("senha").value.trim();
+  const msg = document.getElementById("erro");
 
-    // Render YouTube embed se existir
-    const frame = document.getElementById('youtube-embed');
-    if(frame){
-      const id = cfg.youtubeVideoDestaque || "";
-      const url = id ? `https://www.youtube.com/embed/${id}` : "about:blank";
-      frame.src = url;
+  const contas = JSON.parse(localStorage.getItem("contas")) || [];
+
+  const conta = contas.find(c => c.email === email && c.senha === senha);
+
+  if (!conta) {
+    msg.style.color = "red";
+    msg.textContent = "E-mail ou senha incorretos.";
+    return;
+  }
+
+  if (!conta.aprovado) {
+    msg.style.color = "red";
+    msg.textContent = "Sua conta ainda aguarda aprovação do pastor.";
+    return;
+  }
+
+  localStorage.setItem("usuarioLogado", JSON.stringify(conta));
+  window.location.href = "dashboard.html";
+}
+
+
+/* ---------- LOGOUT ---------- */
+function logout() {
+  localStorage.removeItem("usuarioLogado");
+  window.location.href = "login.html";
+}
+
+
+/* ---------- DASHBOARD (Pastor e Membros) ---------- */
+
+function carregarPendentes() {
+  const contas = JSON.parse(localStorage.getItem("contas")) || [];
+  const lista = document.getElementById("listaPendentes");
+  if (!lista) return;
+  
+  lista.innerHTML = "";
+
+  contas.forEach((c, index) => {
+    if (!c.aprovado) {
+      lista.innerHTML += `
+      <tr>
+        <td>${c.nome}</td>
+        <td>${c.email}</td>
+        <td><button class="btn btn-primary" onclick="aprovar(${index})">Aprovar</button></td>
+      </tr>`;
     }
   });
+}
 
-  // ------------- Mini "API" Local (fallback) -------------
-  const useLocal = !cfg.apiBaseUrl;
-  const KEY = "videira_bbu";
-  const loadLocal = () => JSON.parse(localStorage.getItem(KEY) || '{}');
-  const saveLocal = (data) => localStorage.setItem(KEY, JSON.stringify(data));
+function aprovar(i) {
+  const contas = JSON.parse(localStorage.getItem("contas"));
+  contas[i].aprovado = true;
+  localStorage.setItem("contas", JSON.stringify(contas));
+  carregarPendentes();
+}
 
-  async function api(path, method="GET", body){
-    if(!useLocal){
-      const res = await fetch(cfg.apiBaseUrl + path, {
-        method,
-        headers: {'Content-Type':'application/json'},
-        body: body ? JSON.stringify(body) : undefined
-      });
-      if(!res.ok) throw new Error(await res.text());
-      return res.json();
-    }
-    // Local fallback
-    const db = loadLocal();
-    db.members = db.members || [];
-    db.library = db.library || [];
-    db.studySessions = db.studySessions || [];
-    // Simple routes
-    if(path==="/auth/login" && method==="POST"){
-      const {email, chave} = body;
-      const role = (chave === cfg.demoAdminKey) ? "pastor" : (chave === cfg.demoMemberKey ? "membro" : null);
-      if(!role) throw new Error("Chave inválida. Solicite ao pastor.");
-      const member = db.members.find(m=>m.email===email) || {name: email.split("@")[0], email, role};
-      member.role = role;
-      if(!db.members.find(m=>m.email===email)){ db.members.push(member); }
-      saveLocal(db);
-      return {token:"demo", user:member};
-    }
-    if(path==="/members" && method==="POST"){
-      const m = body;
-      db.members.push({...m, role:"membro"}); saveLocal(db); return m;
-    }
-    if(path==="/members" && method==="GET"){
-      return db.members;
-    }
-    if(path==="/library" && method==="GET"){
-      return db.library;
-    }
-    if(path==="/library" && method==="POST"){
-      const item = {...body, id: Date.now()};
-      db.library.push(item); saveLocal(db); return item;
-    }
-    if(path==="/study-sessions" && method==="GET"){
-      return db.studySessions;
-    }
-    if(path==="/study-sessions" && method==="POST"){
-      const s = {...body, id: Date.now()};
-      db.studySessions.push(s); saveLocal(db); return s;
-    }
-    return {ok:true};
+
+/* ---------- IDENTIFICAÇÃO DE QUEM ESTÁ LOGADO ---------- */
+document.addEventListener("DOMContentLoaded", () => {
+  const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+  const painelPastor = document.getElementById("painelPastor");
+  const painelMembro = document.getElementById("painelMembro");
+  const nomeUsuario = document.getElementById("nomeUsuario");
+
+  if (nomeUsuario && usuario) {
+    nomeUsuario.textContent = usuario.nome;
   }
-  window.AppAPI = { api };
-})();
+
+  if (usuario && usuario.email === "videira.bbu@gmail.com") {
+    if (painelPastor) painelPastor.style.display = "block";
+    carregarPendentes();
+  } else {
+    if (painelMembro) painelMembro.style.display = "block";
+  }
+});
