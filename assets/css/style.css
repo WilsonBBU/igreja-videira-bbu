@@ -91,3 +91,46 @@ input:focus,select:focus,textarea:focus{outline:2px solid #a7f3d0;border-color:#
   .hero-video .grid{grid-template-columns:1fr}
   .hero-img h2{font-size:34px}
 }
+/* ===================== MENU MOBILE ===================== */
+
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 30px;
+  cursor: pointer;
+  color: var(--verde-escuro);
+}
+
+@media (max-width: 860px) {
+
+  .nav {
+    display: none;
+    position: absolute;
+    top: 65px;
+    right: 0;
+    width: 100%;
+    background: #ffffff;
+    border-bottom: 1px solid #e6e8eb;
+    flex-direction: column;
+    padding: 20px 0;
+  }
+
+  body.menu-open .nav {
+    display: flex;
+  }
+
+  .nav a {
+    padding: 12px 18px;
+    text-align: center;
+    border-bottom: 1px solid #e6e8eb;
+  }
+
+  .menu-toggle {
+    display: block;
+  }
+
+  .topbar .wrap {
+    justify-content: space-between;
+  }
+}

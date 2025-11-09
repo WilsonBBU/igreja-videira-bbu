@@ -9,78 +9,82 @@
   <script defer src="assets/js/main.js"></script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="container wrap">
-      <div class="brand">
-        <img src="assets/img/logo.png" class="logo" alt="Logo (troque depois)">
-        <div class="title">
-          <h1 data-church-name>Igreja Videira BBU</h1>
-          <small>Uma família para pertencer.</small>
-        </div>
-      </div>
-      <nav class="nav">
-        <a href="index.html">Início</a>
-        <a href="pages/sobre.html">Sobre</a>
-        <a href="pages/ministerios.html">Ministérios</a>
-        <a href="pages/eventos.html">Eventos</a>
-        <a href="pages/biblioteca.html">Biblioteca</a>
-        <a href="pages/estudos.html">Sala de Estudos</a>
-        <a href="pages/cadastro.html">Cadastre-se</a>
-        <a href="pages/login.html">Entrar</a>
-      </nav>
-    </div>
-  </header>
 
-  <!-- 1) Hero com foto grande de culto + frase forte -->
-  <section class="hero-img">
-    <div class="overlay"></div>
-    <div class="container content">
-      <h2>"Jesus é a videira, nós somos os ramos."</h2>
-      <p>Somos uma família para pertencer. Venha viver o evangelho de Jesus em comunidade.</p>
-      <div class="cta">
-        <a class="btn btn-primary" href="#visite">Visite-nos</a>
-        <a class="btn btn-ghost" href="pages/eventos.html">Próximos eventos</a>
-      </div>
-    </div>
-  </section>
+<header class="topbar">
+  <div class="container wrap">
 
-  <!-- 2) Fundo branco com frase central + botão “Visite-nos” -->
-  <section id="visite" class="block-white">
-    <div class="container center">
-      <h3>"Seja bem-vindo ao lar da fé."</h3>
-      <p><span data-culto>Domingos, 19h</span> — <span data-endereco>Endereço será configurado</span></p>
-      <p>
-        <a class="btn btn-primary" data-whatsapp-link href="#">Fale no WhatsApp</a>
-      </p>
+    <div class="brand">
+      <img src="assets/img/logo.png" class="logo" alt="Logo da Igreja">
+      <div class="title">
+        <h1 data-church-name>Igreja Videira BBU</h1>
+        <small>Uma família para pertencer.</small>
+      </div>
     </div>
-  </section>
 
-  <!-- 3) Hero com vídeo (ao vivo ou gravado) -->
-  <section class="hero-video">
-    <div class="container grid">
-      <div class="copy">
-        <h3>Transmissões ao vivo e mensagens</h3>
-        <p>Assista aos cultos e séries. Conecte-se onde estiver.</p>
-      </div>
-      <div class="video-frame">
-        <iframe id="youtube-embed" allowfullscreen title="Vídeo destaque"></iframe>
-      </div>
-    </div>
-  </section>
+    <button class="menu-toggle" onclick="document.body.classList.toggle('menu-open')">☰</button>
 
-  <footer class="footer">
-    <div class="container grid">
-      <div>
-        <strong data-church-name>Igreja Videira BBU</strong>
-        <small>© <span id="year"></span> — Todos os direitos reservados</small>
-      </div>
-      <div style="text-align:right">
-        <a data-whatsapp-link href="#">WhatsApp</a> ·
-        <a href="#" target="_blank">YouTube</a> ·
-        <a href="#" target="_blank">Instagram</a>
-      </div>
+    <nav class="nav">
+      <a href="index.html">Início</a>
+      <a href="pages/sobre.html">Sobre</a>
+      <a href="pages/ministerios.html">Ministérios</a>
+      <a href="pages/eventos.html">Eventos</a>
+      <a href="pages/biblioteca.html">Biblioteca</a>
+      <a href="pages/estudos.html">Sala de Estudos</a>
+      <a href="pages/cadastro.html">Cadastre-se</a>
+      <a href="pages/login.html">Entrar</a>
+    </nav>
+
+  </div>
+</header>
+
+<section class="hero-img">
+  <div class="overlay"></div>
+  <div class="container content">
+    <h2>"Jesus é a videira, nós somos os ramos."</h2>
+    <p>Somos uma família para pertencer. Venha viver o evangelho de Jesus em comunidade.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="#visite">Visite-nos</a>
+      <a class="btn btn-ghost" href="pages/eventos.html">Próximos eventos</a>
     </div>
-    <script>document.getElementById('year').textContent = new Date().getFullYear()</script>
-  </footer>
+  </div>
+</section>
+
+<section id="visite" class="block-white">
+  <div class="container center">
+    <h3>"Seja bem-vindo ao lar da fé."</h3>
+    <p><span data-culto>Domingos, 19h</span> — <span data-endereco>Definir endereço</span></p>
+    <p>
+      <a class="btn btn-primary" data-whatsapp-link href="#">Fale no WhatsApp</a>
+    </p>
+  </div>
+</section>
+
+<section class="hero-video">
+  <div class="container grid">
+    <div class="copy">
+      <h3>Transmissões ao vivo e mensagens</h3>
+      <p>Assista cultos, séries e ministrações onde estiver.</p>
+    </div>
+    <div class="video-frame">
+      <iframe id="youtube-embed" allowfullscreen title="Transmissão"></iframe>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container grid">
+    <div>
+      <strong data-church-name>Igreja Videira BBU</strong>
+      <small>© <span id="year"></span> — Todos os direitos reservados</small>
+    </div>
+    <div style="text-align:right">
+      <a data-whatsapp-link href="#">WhatsApp</a> ·
+      <a href="#" target="_blank">YouTube</a> ·
+      <a href="#" target="_blank">Instagram</a>
+    </div>
+  </div>
+  <script>document.getElementById('year').textContent = new Date().getFullYear()</script>
+</footer>
+
 </body>
 </html>
