@@ -1,42 +1,261 @@
-<!DOCTYPE html><html lang="pt-BR"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Entrar - Igreja Videira BBU</title>
-<link rel="stylesheet" href="../assets/css/style.css">
-<script src="../config.js"></script><script defer src="../assets/js/main.js"></script>
-</head><body>
-<header class="topbar"><div class="container wrap">
-  <div class="brand"><img src="../assets/img/logo.png" class="logo"><div class="title">
-    <h1 data-church-name></h1><small>Acesso de membros</small></div></div>
-  <nav class="nav"><a href="../index.html">Início</a></nav>
-</div></header>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Entrar - Igreja Videira BBU</title>
 
-<main class="section"><div class="container" style="max-width:520px">
-  <div class="card">
-    <h4>Login</h4>
-    <p><span class="badge">DEMO</span> Use a chave de membro ou do pastor (config.js) — depois trocamos por uma API real.</p>
-    <form id="formLogin">
-      <input required name="email" type="email" placeholder="E-mail cadastrado">
-      <input required name="chave" placeholder="Chave (membro/pastor)">
-      <button class="btn btn-primary btn-full" type="submit">Entrar</button>
-    </form>
-    <div id="msgLogin" style="margin-top:10px"></div>
-  </div>
-</div></main>
+  <!-- Tema padrão do projeto -->
+  <link rel="stylesheet" href="../assets/css/style.css" />
 
-<footer class="footer"><div class="container"><small>© <span id="year"></span></small></div></footer>
-<script>
-document.getElementById('year').textContent=new Date().getFullYear();
-const form = document.getElementById('formLogin');
-form.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const data = Object.fromEntries(new FormData(form).entries());
-  try{
-    const res = await window.AppAPI.api('/auth/login','POST', data);
-    localStorage.setItem('videira_user', JSON.stringify(res.user));
-    location.href = 'dashboard.html';
-  }catch(err){
-    document.getElementById('msgLogin').innerHTML = '<div class="error">Erro: '+err.message+'</div>';
-  }
-});
-</script>
-</body></html>
+  <!-- Carrega config e utilitários globais -->
+  <script src="../config.js"></script>
+  <script defer src="../assets/js/main.js"></script>
+
+  <style>
+    /* Melhorias pontuais para mobile e visibilidade dos botões */
+    .tabs { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 18px; }
+    .tabs button{
+      border:1px solid #e5e7eb; background:#fff; padding:10px 14px; border-radius:10px;
+      font-weight:700; cursor:pointer
+    }
+    .tabs button.active{ background:var(--verde); color:#fff; border-color:var(--verde) }
+    .help { font-size:13px; color:#64748b; margin-top:-6px; }
+    .row { display:grid; gap:10px; grid-template-columns:1fr 1fr; }
+    @media (max-width:600px){ .row{ grid-template-columns:1fr; } }
+    .link-inline { font-weight:700; text-decoration:underline; color:var(--verde-escuro); }
+    .eye { cursor:pointer; user-select:none; font-size:12px; color:#475569; }
+    .btns { display:flex; flex-wrap:wrap; gap:10px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container wrap">
+      <div class="brand">
+        <img src="../assets/img/logo.png" class="logo" alt="Logo" />
+        <div class="title">
+          <h1 data-church-name></h1>
+          <small>Acesso de membros</small>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="../index.html">Início</a>
+        <a href="cadastro.html">Cadastre-se</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="section">
+    <div class="container" style="max-width:520px">
+      <div class="card">
+        <div class="tabs" role="tablist" aria-label="Acessos">
+          <button id="tab-login" class="active" aria-selected="true">Entrar</button>
+          <button id="tab-cadastrar" aria-selected="false">Cadastrar chave</button>
+        </div>
+
+        <!-- ====== ABA ENTRAR ====== -->
+        <div id="pane-login">
+          <h4>Login</h4>
+          <p class="help">
+            Você pode entrar de duas formas:<br>
+            1) usando **sua chave cadastrada** neste dispositivo; ou <br>
+            2) usando as chaves <b>DEMO</b> definidas no <code>config.js</code> (membro ou pastor).
+          </p>
+
+          <form id="formLogin">
+            <label>E-mail</label>
+            <input
+              required
+              name="email"
+              type="email"
+              placeholder="seuemail@exemplo.com"
+              value="videira.bbu@gmail.com"
+              autocomplete="email"
+              inputmode="email"
+            />
+
+            <div class="row">
+              <div>
+                <label>Chave de acesso</label>
+                <input
+                  required
+                  name="chave"
+                  type="password"
+                  placeholder="Digite sua chave"
+                  autocomplete="current-password"
+                  inputmode="text"
+                />
+                <div class="eye" id="togglePwdLogin">mostrar/ocultar</div>
+              </div>
+            </div>
+
+            <div class="btns" style="margin-top:8px">
+              <button class="btn btn-primary" type="submit">Entrar</button>
+              <a class="btn btn-ghost" href="cadastro.html" role="button">Ainda não tem cadastro?</a>
+            </div>
+            <div id="msgLogin" style="margin-top:10px"></div>
+          </form>
+        </div>
+
+        <!-- ====== ABA CADASTRAR CHAVE ====== -->
+        <div id="pane-cadastrar" style="display:none">
+          <h4>Cadastrar chave de acesso</h4>
+          <p class="help">
+            Aqui você grava **sua chave pessoal** (apenas neste aparelho) para entrar depois com seu e-mail + chave.<br>
+            <b>Dica:</b> o pastor pode definir a política da igreja (ex.: entregar a chave no primeiro acesso).
+          </p>
+
+          <form id="formCadastrarChave">
+            <label>E-mail</label>
+            <input
+              required
+              name="email"
+              type="email"
+              placeholder="seuemail@exemplo.com"
+              value="videira.bbu@gmail.com"
+              autocomplete="email"
+              inputmode="email"
+            />
+
+            <label>Nova chave</label>
+            <input
+              required
+              minlength="4"
+              name="chave"
+              type="password"
+              placeholder="Defina sua chave (mín. 4 caracteres)"
+              autocomplete="new-password"
+              inputmode="text"
+            />
+            <div class="eye" id="togglePwdCad">mostrar/ocultar</div>
+
+            <button class="btn btn-primary btn-full" type="submit">Salvar chave neste aparelho</button>
+            <div id="msgCad" style="margin-top:10px"></div>
+          </form>
+
+          <p class="help" style="margin-top:12px">
+            Sua chave fica salva somente neste dispositivo via <code>localStorage</code>.
+            Para uso multi-dispositivo, publique a API (pasta <code>/api</code>) e implemente
+            armazenamento no servidor; depois configure <code>apiBaseUrl</code> em <code>config.js</code>.
+          </p>
+        </div>
+      </div>
+
+      <div class="notice" style="margin-top:14px">
+        <b>Problemas no celular?</b> Certifique-se de abrir: <code>https://wilsonbbu.github.io/igreja-videira-bbu/</code>.
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container"><small>© <span id="year"></span></small></div>
+  </footer>
+  <script>document.getElementById('year').textContent = new Date().getFullYear()</script>
+
+  <script>
+    // --- Tabs simples
+    const tabLogin = document.getElementById('tab-login');
+    const tabCad   = document.getElementById('tab-cadastrar');
+    const paneLogin = document.getElementById('pane-login');
+    const paneCad   = document.getElementById('pane-cadastrar');
+
+    function activate(tab){
+      if(tab === 'login'){
+        tabLogin.classList.add('active'); tabLogin.setAttribute('aria-selected','true');
+        tabCad.classList.remove('active'); tabCad.setAttribute('aria-selected','false');
+        paneLogin.style.display = ''; paneCad.style.display = 'none';
+      }else{
+        tabCad.classList.add('active'); tabCad.setAttribute('aria-selected','true');
+        tabLogin.classList.remove('active'); tabLogin.setAttribute('aria-selected','false');
+        paneCad.style.display = ''; paneLogin.style.display = 'none';
+      }
+    }
+    tabLogin.addEventListener('click', ()=>activate('login'));
+    tabCad.addEventListener('click', ()=>activate('cad'));
+
+    // --- Mostrar/ocultar senha
+    function togglePwd(input, control){
+      const el = input; const ctrl = control;
+      ctrl.addEventListener('click', ()=>{
+        el.type = (el.type === 'password') ? 'text' : 'password';
+      });
+    }
+    togglePwd(document.querySelector('#formLogin input[name="chave"]'), document.getElementById('togglePwdLogin'));
+    togglePwd(document.querySelector('#formCadastrarChave input[name="chave"]'), document.getElementById('togglePwdCad'));
+
+    // --- “Banco” local de chaves por e-mail
+    const KEYBOOK_NAME = 'videira_keys';
+    const USER_KEY     = 'videira_user';
+
+    function loadKeybook(){
+      try { return JSON.parse(localStorage.getItem(KEYBOOK_NAME) || '{}'); }
+      catch { return {}; }
+    }
+    function saveKeybook(book){
+      localStorage.setItem(KEYBOOK_NAME, JSON.stringify(book || {}));
+    }
+
+    // ===== CADASTRAR CHAVE =====
+    const fCad = document.getElementById('formCadastrarChave');
+    const msgCad = document.getElementById('msgCad');
+    fCad.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(fCad).entries());
+      const email = (data.email || '').trim().toLowerCase();
+      const chave = (data.chave || '').trim();
+
+      if(!email || !chave){ msgCad.innerHTML = '<div class="error">Preencha e-mail e chave.</div>'; return; }
+      const book = loadKeybook();
+      book[email] = chave;
+      saveKeybook(book);
+      msgCad.innerHTML = '<div class="success">Chave salva neste aparelho! Use a aba <b>Entrar</b> para acessar.</div>';
+      fCad.reset();
+      // Volta para a aba de login
+      setTimeout(()=>activate('login'), 600);
+    });
+
+    // ===== LOGIN =====
+    const fLogin = document.getElementById('formLogin');
+    const msgLogin = document.getElementById('msgLogin');
+
+    fLogin.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      msgLogin.innerHTML = '';
+      const data = Object.fromEntries(new FormData(fLogin).entries());
+      const email = (data.email || '').trim().toLowerCase();
+      const chave = (data.chave || '').trim();
+
+      if(!email || !chave){
+        msgLogin.innerHTML = '<div class="error">Informe e-mail e chave.</div>';
+        return;
+      }
+
+      // 1) Tenta chave local cadastrada
+      const localKeys = loadKeybook();
+      if(localKeys[email] && localKeys[email] === chave){
+        const user = { name: email.split('@')[0], email, role: 'membro' };
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        location.href = 'dashboard.html';
+        return;
+      }
+
+      // 2) Se não existir chave local, tenta a API/DEMO (config.js)
+      try{
+        const res = await window.AppAPI.api('/auth/login', 'POST', { email, chave });
+        // Sucesso demo/real:
+        localStorage.setItem(USER_KEY, JSON.stringify(res.user));
+        location.href = 'dashboard.html';
+      }catch(err){
+        // Ajuda o usuário a lembrar de cadastrar a chave
+        msgLogin.innerHTML = '<div class="error">Não foi possível entrar: '
+          + (err && err.message ? err.message : 'verifique a chave')
+          + '. Você já <a class="link-inline" href="#" id="gotoCad">cadastrou sua chave</a> neste aparelho?</div>';
+        const link = document.getElementById('gotoCad');
+        if(link){
+          link.addEventListener('click', (e)=>{ e.preventDefault(); activate("cad"); });
+        }
+      }
+    });
+  </script>
+</body>
+</html>
