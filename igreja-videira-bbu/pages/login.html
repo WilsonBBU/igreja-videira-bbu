@@ -1,0 +1,42 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entrar - Igreja Videira BBU</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<script src="../config.js"></script><script defer src="../assets/js/main.js"></script>
+</head><body>
+<header class="topbar"><div class="container wrap">
+  <div class="brand"><img src="../assets/img/logo.png" class="logo"><div class="title">
+    <h1 data-church-name></h1><small>Acesso de membros</small></div></div>
+  <nav class="nav"><a href="../index.html">Início</a></nav>
+</div></header>
+
+<main class="section"><div class="container" style="max-width:520px">
+  <div class="card">
+    <h4>Login</h4>
+    <p><span class="badge">DEMO</span> Use a chave de membro ou do pastor (config.js) — depois trocamos por uma API real.</p>
+    <form id="formLogin">
+      <input required name="email" type="email" placeholder="E-mail cadastrado">
+      <input required name="chave" placeholder="Chave (membro/pastor)">
+      <button class="btn btn-primary btn-full" type="submit">Entrar</button>
+    </form>
+    <div id="msgLogin" style="margin-top:10px"></div>
+  </div>
+</div></main>
+
+<footer class="footer"><div class="container"><small>© <span id="year"></span></small></div></footer>
+<script>
+document.getElementById('year').textContent=new Date().getFullYear();
+const form = document.getElementById('formLogin');
+form.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(form).entries());
+  try{
+    const res = await window.AppAPI.api('/auth/login','POST', data);
+    localStorage.setItem('videira_user', JSON.stringify(res.user));
+    location.href = 'dashboard.html';
+  }catch(err){
+    document.getElementById('msgLogin').innerHTML = '<div class="error">Erro: '+err.message+'</div>';
+  }
+});
+</script>
+</body></html>
