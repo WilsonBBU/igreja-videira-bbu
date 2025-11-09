@@ -17,7 +17,13 @@
     <p><a class="btn btn-primary" data-whatsapp-link href="#">Conversar no WhatsApp</a></p>
   </div>
 </div></main>
+<!-- Firebase (Compat para facilitar em HTML puro) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
 
+<script type="module" src="assets/js/firebase.js"></script>
 <footer class="footer"><div class="container"><small>© <span id="year"></span></small></div></footer>
 <script>document.getElementById('year').textContent=new Date().getFullYear()</script>
 </body></html>

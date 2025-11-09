@@ -1,88 +1,120 @@
 (function(){
-  const cfg = window.SITE_CONFIG || {};
-  // Preenche itens globais (nav / footer)
-  document.addEventListener('DOMContentLoaded', () => {
-    const churchNameEls = document.querySelectorAll('[data-church-name]');
-    churchNameEls.forEach(el => el.textContent = cfg.nomeIgreja || 'Igreja Videira');
+  const CFG = window.SITE_CONFIG;
 
-    const whatsEls = document.querySelectorAll('[data-whatsapp-link]');
-    whatsEls.forEach(el => {
-      if(cfg.whatsapp){
-        el.href = `https://wa.me/${cfg.whatsapp}`;
-      } else {
-        el.style.display = 'none';
-      }
-    });
+  // ====== Firebase init ======
+  firebase.initializeApp(CFG.firebaseConfig);
+  const auth = firebase.auth();
+  const db   = firebase.firestore();
+  const st   = firebase.storage();
 
-    const enderecoEl = document.querySelector('[data-endereco]');
-    if(enderecoEl && cfg.endereco){ enderecoEl.textContent = cfg.endereco; }
+  // ====== Helpers ======
+  const qs  = (s,sc=document)=>sc.querySelector(s);
+  const qsa = (s,sc=document)=>Array.from(sc.querySelectorAll(s));
+  const setTxt = (sel,txt)=> qsa(sel).forEach(e=>e.textContent = txt);
 
-    const cultoEl = document.querySelector('[data-culto]');
-    if(cultoEl && cfg.cultoPrincipal){ cultoEl.textContent = cfg.cultoPrincipal; }
+  document.addEventListener('DOMContentLoaded', ()=>{
+    // Header info
+    setTxt('[data-church-name]', CFG.nomeIgreja || 'Igreja Videira');
+    const w = qs('[data-whatsapp-link]');
+    if(w && CFG.whatsapp) w.href = `https://wa.me/${CFG.whatsapp}`;
+    const end = qs('[data-endereco]'); if(end) end.textContent = CFG.endereco||'';
+    const cul = qs('[data-culto]');    if(cul) cul.textContent = CFG.cultoPrincipal||'';
 
-    // Render YouTube embed se existir
-    const frame = document.getElementById('youtube-embed');
+    // YouTube
+    const frame = qs('#youtube-embed');
     if(frame){
-      const id = cfg.youtubeVideoDestaque || "";
-      const url = id ? `https://www.youtube.com/embed/${id}` : "about:blank";
-      frame.src = url;
+      frame.src = CFG.youtubeVideoDestaque
+        ? `https://www.youtube.com/embed/${CFG.youtubeVideoDestaque}`
+        : 'about:blank';
     }
   });
 
-  // ------------- Mini "API" Local (fallback) -------------
-  const useLocal = !cfg.apiBaseUrl;
-  const KEY = "videira_bbu";
-  const loadLocal = () => JSON.parse(localStorage.getItem(KEY) || '{}');
-  const saveLocal = (data) => localStorage.setItem(KEY, JSON.stringify(data));
+  // ====== Auth ======
+  async function signUp({name,email,password,accessKey,phone}) {
+    const cred = await auth.createUserWithEmailAndPassword(email,password);
+    await cred.user.updateProfile({ displayName: name });
+    // define role por chave (se informada)
+    let role = 'membro';
+    if(accessKey === CFG.pastorAccessKey) role = 'pastor';
+    else if(accessKey === CFG.memberAccessKey) role = 'membro';
 
-  async function api(path, method="GET", body){
-    if(!useLocal){
-      const res = await fetch(cfg.apiBaseUrl + path, {
-        method,
-        headers: {'Content-Type':'application/json'},
-        body: body ? JSON.stringify(body) : undefined
-      });
-      if(!res.ok) throw new Error(await res.text());
-      return res.json();
-    }
-    // Local fallback
-    const db = loadLocal();
-    db.members = db.members || [];
-    db.library = db.library || [];
-    db.studySessions = db.studySessions || [];
-    // Simple routes
-    if(path==="/auth/login" && method==="POST"){
-      const {email, chave} = body;
-      const role = (chave === cfg.demoAdminKey) ? "pastor" : (chave === cfg.demoMemberKey ? "membro" : null);
-      if(!role) throw new Error("Chave inválida. Solicite ao pastor.");
-      const member = db.members.find(m=>m.email===email) || {name: email.split("@")[0], email, role};
-      member.role = role;
-      if(!db.members.find(m=>m.email===email)){ db.members.push(member); }
-      saveLocal(db);
-      return {token:"demo", user:member};
-    }
-    if(path==="/members" && method==="POST"){
-      const m = body;
-      db.members.push({...m, role:"membro"}); saveLocal(db); return m;
-    }
-    if(path==="/members" && method==="GET"){
-      return db.members;
-    }
-    if(path==="/library" && method==="GET"){
-      return db.library;
-    }
-    if(path==="/library" && method==="POST"){
-      const item = {...body, id: Date.now()};
-      db.library.push(item); saveLocal(db); return item;
-    }
-    if(path==="/study-sessions" && method==="GET"){
-      return db.studySessions;
-    }
-    if(path==="/study-sessions" && method==="POST"){
-      const s = {...body, id: Date.now()};
-      db.studySessions.push(s); saveLocal(db); return s;
-    }
-    return {ok:true};
+    await db.collection('members').doc(cred.user.uid).set({
+      name, email, phone: phone||'', role, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    return cred.user;
   }
-  window.AppAPI = { api };
+
+  async function signIn({email,password}) {
+    const cred = await auth.signInWithEmailAndPassword(email,password);
+    return cred.user;
+  }
+
+  function signOut(){ return auth.signOut(); }
+
+  async function currentUserDoc(){
+    const u = auth.currentUser;
+    if(!u) return null;
+    const doc = await db.collection('members').doc(u.uid).get();
+    return doc.exists ? {id:u.uid, ...doc.data()} : {id:u.uid, name:u.displayName||'', email:u.email, role:'membro'};
+  }
+
+  // ====== Biblioteca ======
+  function listLibrary(){ return db.collection('library').orderBy('createdAt','desc').get().then(s=>s.docs.map(d=>({id:d.id,...d.data()}))); }
+  function addLibrary({title,author,link}){
+    return db.collection('library').add({ title, author:author||'', link:link||'', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  }
+
+  // ====== Estudos ======
+  function listStudies(){ return db.collection('studies').orderBy('dueAt','asc').get().then(s=>s.docs.map(d=>({id:d.id,...d.data()}))); }
+  function addStudy({tema, dueAt, link}){
+    return db.collection('studies').add({
+      tema, link:link||'', dueAt: dueAt ? new Date(dueAt) : null,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }
+
+  // inscrições / conclusão
+  function enrollStudy(studyId, user){
+    return db.collection('completions').doc(`${studyId}_${user.id}`).set({
+      studyId, userId:user.id, userName:user.name, status:'inscrito',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, {merge:true});
+  }
+  function completeStudy(studyId, user){
+    return db.collection('completions').doc(`${studyId}_${user.id}`).set({
+      status:'concluido',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, {merge:true});
+  }
+  function listCompletionsByStudy(studyId){
+    return db.collection('completions').where('studyId','==',studyId).get().then(s=>s.docs.map(d=>({id:d.id,...d.data()})));
+  }
+  function listUserCompletions(userId){
+    return db.collection('completions').where('userId','==',userId).get().then(s=>s.docs.map(d=>({id:d.id,...d.data()})));
+  }
+
+  // Aprovação do pastor + certificado
+  async function approveCompletion(studyId, userId){
+    const id = `${studyId}_${userId}`;
+    await db.collection('completions').doc(id).set({
+      status:'aprovado',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, {merge:true});
+    // cria certificado
+    const certRef = await db.collection('certificates').add({
+      studyId, userId, issuedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    return certRef.id;
+  }
+
+  // ====== Expor no escopo global ======
+  window.App = {
+    CFG, auth, db, st,
+    signUp, signIn, signOut, currentUserDoc,
+    listLibrary, addLibrary,
+    listStudies, addStudy,
+    enrollStudy, completeStudy,
+    listCompletionsByStudy, listUserCompletions,
+    approveCompletion
+  };
 })();

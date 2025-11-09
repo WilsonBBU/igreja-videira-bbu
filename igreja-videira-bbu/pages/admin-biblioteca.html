@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Biblioteca - Videira BBU</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+
+<body>
+
+<main class="section container" style="max-width:600px">
+  <h2>Adicionar Material à Biblioteca</h2>
+
+  <label>Título do Material</label>
+  <input id="titulo" placeholder="Ex: Manual do Discipulado">
+
+  <label>Selecionar Arquivo (PDF)</label>
+  <input type="file" id="arquivo" accept="application/pdf">
+
+  <button onclick="uploadArquivo()" class="btn btn-primary btn-full">Enviar</button>
+
+  <p id="msg" style="margin-top:10px;"></p>
+</main>
+
+<script type="module">
+import { auth, db, storage } from "../assets/js/firebase.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+import { collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+onAuthStateChanged(auth, (user) => {
+  if (!user || user.email !== "videira.bbu@gmail.com") {
+    return location.href = "dashboard.html";
+  }
+});
+
+window.uploadArquivo = async () => {
+  const titulo = document.getElementById("titulo").value;
+  const arquivo = document.getElementById("arquivo").files[0];
+  const msg = document.getElementById("msg");
+
+  if (!titulo || !arquivo) {
+    msg.style.color = "red";
+    msg.textContent = "Preencha o título e selecione um arquivo.";
+    return;
+  }
+
+  const caminho = `biblioteca/${Date.now()}-${arquivo.name}`;
+  const storageRef = ref(storage, caminho);
+
+  try {
+    await uploadBytes(storageRef, arquivo);
+    const url = await getDownloadURL(storageRef);
+
+    await addDoc(collection(db, "biblioteca"), { titulo, url });
+
+    msg.style.color = "green";
+    msg.textContent = "Enviado com sucesso!";
+
+    document.getElementById("titulo").value = "";
+    document.getElementById("arquivo").value = "";
+
+  } catch (err) {
+    msg.style.color = "red";
+    msg.textContent = "Erro: " + err.message;
+  }
+};
+</script>
+<!-- Firebase (Compat para facilitar em HTML puro) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
+
+<script type="module" src="assets/js/firebase.js"></script>
+
+</body>
+</html>
