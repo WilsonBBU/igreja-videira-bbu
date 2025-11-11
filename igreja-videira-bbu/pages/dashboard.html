@@ -1,113 +1,111 @@
 <!DOCTYPE html><html lang="pt-BR"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard - Membro</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dashboard - Igreja Videira BBU</title>
 <link rel="stylesheet" href="../assets/css/style.css">
-<!-- Firebase + Config + App -->
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
 <script src="../config.js"></script>
-<script defer src="../assets/js/main.js"></script>
+<script type="module" src="../assets/js/main.js"></script>
 </head><body>
-<header class="topbar"><div class="container wrap">
-  <div class="brand"><img src="../assets/img/logo.png" class="logo"><div class="title">
-    <h1 data-church-name></h1><small>Área do Membro</small></div></div>
-  <nav class="nav">
-    <a href="../index.html">Início</a>
-    <a id="btnSair" class="btn btn-ghost">Sair</a>
-  </nav>
-</div></header>
+<header class="topbar">
+  <div class="container wrap">
+    <div class="brand">
+      <img src="../assets/img/logo.png" class="logo" alt="Logo">
+      <div class="title"><h1 data-church-name></h1><small>Área do Membro</small></div>
+    </div>
+    <button id="menuToggle" class="hamburger" aria-label="Abrir menu"><span></span> Menu</button>
+    <nav id="mainNav" class="nav">
+      <a href="../index.html">Início</a>
+      <a href="#" id="btnSair">Sair</a>
+    </nav>
+  </div>
+</header>
 
 <main class="section"><div class="container">
-  <div id="boxUser" class="notice">Carregando...</div>
+  <div id="boxUser" class="notice">Carregando…</div>
 
   <h3>Biblioteca</h3>
-  <div id="listaBiblioteca" class="grid-cards"></div>
+  <div class="grid-cards" id="listaBiblioteca"></div>
 
-  <hr style="margin:20px 0">
+  <hr style="margin:24px 0">
 
-  <h3>Estudos</h3>
-  <div id="listaEstudos" class="grid-cards"></div>
+  <h3>Sala de Estudos</h3>
+  <div class="grid-cards" id="listaEstudos"></div>
 
-  <hr style="margin:20px 0">
-
-  <h3>Meus Certificados</h3>
-  <div id="listaCertificados" class="grid-cards"></div>
+  <div id="adminPanel" style="display:none; margin-top:24px">
+    <h3>Painel do Pastor</h3>
+    <div class="card">
+      <h4>Novo item na Biblioteca</h4>
+      <form id="formAddLivro">
+        <input required name="titulo" placeholder="Título">
+        <input name="autor" placeholder="Autor (opcional)">
+        <input name="link" placeholder="Link (YouTube/Drive/PDF)">
+        <button class="btn btn-primary">Adicionar</button>
+      </form>
+    </div>
+    <div class="card">
+      <h4>Agendar Estudo</h4>
+      <form id="formAddEstudo">
+        <input required name="tema" placeholder="Tema">
+        <input required name="data" type="datetime-local">
+        <input name="link" placeholder="Link de videoconferência">
+        <button class="btn btn-primary">Agendar</button>
+      </form>
+    </div>
+  </div>
 </div></main>
 
 <footer class="footer"><div class="container"><small>© <span id="year"></span></small></div></footer>
-<script>
+<script type="module">
+import { auth, db, logOut, listLibrary, listStudies, addLibrary, addStudy } from "../assets/js/main.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
 document.getElementById('year').textContent=new Date().getFullYear();
-const out = document.getElementById('btnSair');
-out.addEventListener('click', ()=> window.App.signOut().then(()=>location.href='login.html'));
+const boxUser = document.getElementById('boxUser');
+const adminPanel = document.getElementById('adminPanel');
+const listaBib = document.getElementById('listaBiblioteca');
+const listaEst = document.getElementById('listaEstudos');
 
-(async function(){
-  const userAuth = await new Promise(res=>{
-    const u = window.App.auth.currentUser;
-    if (u) return res(u);
-    const unsub = window.App.auth.onAuthStateChanged(x=>{unsub();res(x);});
-  });
-  const box = document.getElementById('boxUser');
-  if(!userAuth){ box.className='error'; box.textContent='Você não está logado.'; return; }
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){ 
+    boxUser.className="error"; boxUser.innerHTML="Você não está logado. <a href='login.html'>Entrar</a>";
+    return;
+  }
+  const local = JSON.parse(localStorage.getItem("videira_user")||"null");
+  const role = local?.role || "membro";
+  boxUser.className="success";
+  boxUser.innerHTML = `Bem-vindo, <strong>${local?.name || user.email}</strong> — Perfil: ${role}`;
+  if(role==="pastor") adminPanel.style.display="block";
+  await carregarDados();
+});
 
-  const me = await window.App.currentUserDoc();
-  box.className = 'success';
-  box.innerHTML = `Bem-vindo, <strong>${me.name||me.email}</strong> — Perfil: ${me.role}`;
+document.getElementById('btnSair').addEventListener('click', async ()=>{
+  await logOut(); location.href="login.html";
+});
 
-  // Biblioteca
-  const livros = await window.App.listLibrary();
-  document.getElementById('listaBiblioteca').innerHTML =
-    (livros.length? livros.map(x=>`
-      <div class="card">
-        <h4>${x.title}</h4>
-        <p>${x.author||''}</p>
-        ${x.link?`<a href="${x.link}" target="_blank">Abrir</a>`:''}
-      </div>`).join('') : '<div class="notice">Sem itens ainda.</div>');
+async function carregarDados(){
+  const livros = await listLibrary();
+  const estudos = await listStudies();
+  renderCards(livros, listaBib, (x)=>`
+    <div class="card"><h4>${x.titulo}</h4><p>${x.autor||''}</p>
+    ${x.link?`<a href="${x.link}" target="_blank">Abrir</a>`:''}</div>`);
+  renderCards(estudos, listaEst, (x)=>`
+    <div class="card"><h4>${x.tema}</h4><p>${new Date(x.data).toLocaleString()}</p>
+    ${x.link?`<a href="${x.link}" target="_blank">Entrar</a>`:''}</div>`);
+}
+function renderCards(arr, el, tpl){ el.innerHTML = (arr||[]).map(tpl).join('')||'<div class="notice">Sem itens ainda.</div>'; }
 
-  // Estudos
-  const estudos = await window.App.listStudies();
-  const minhas = await window.App.listUserCompletions(me.id);
-  const statusMap = Object.fromEntries(minhas.map(m=>[m.studyId,m.status]));
-  document.getElementById('listaEstudos').innerHTML =
-    (estudos.length? estudos.map(s=>{
-      const due = s.dueAt ? new Date(s.dueAt.seconds? s.dueAt.seconds*1000 : s.dueAt).toLocaleString() : '—';
-      const st  = statusMap[s.id] || 'não inscrito';
-      const btnInscrever = st==='não inscrito' ? `<button class="btn btn-primary" data-enroll="${s.id}">Inscrever</button>` : '';
-      const btnConcluir  = st==='inscrito' ? `<button class="btn btn-ghost" data-complete="${s.id}">Marcar como concluído</button>` : '';
-      return `
-        <div class="card">
-          <h4>${s.tema}</h4>
-          <p>Prazo: ${due}</p>
-          ${s.link?`<p><a href="${s.link}" target="_blank">Acessar conteúdo</a></p>`:''}
-          <p>Status: <strong>${st}</strong></p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">${btnInscrever}${btnConcluir}</div>
-        </div>`;
-    }).join('') : '<div class="notice">Sem estudos.</div>');
+const fLivro = document.getElementById('formAddLivro');
+if(fLivro) fLivro.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(fLivro).entries());
+  await addLibrary(data); fLivro.reset(); await carregarDados();
+});
 
-  // Ações
-  document.querySelectorAll('[data-enroll]').forEach(b=>{
-    b.addEventListener('click', async ()=>{
-      await window.App.enrollStudy(b.dataset.enroll, me);
-      location.reload();
-    });
-  });
-  document.querySelectorAll('[data-complete]').forEach(b=>{
-    b.addEventListener('click', async ()=>{
-      await window.App.completeStudy(b.dataset.complete, me);
-      location.reload();
-    });
-  });
-
-  // Certificados do usuário
-  const q = await window.App.db.collection('certificates').where('userId','==',me.id).get();
-  const certs = q.docs.map(d=>({id:d.id,...d.data()}));
-  document.getElementById('listaCertificados').innerHTML =
-    (certs.length? certs.map(c=>`
-      <div class="card">
-        <h4>Certificado</h4>
-        <p>Estudo: ${c.studyId}</p>
-        <a href="certificado.html?cert=${c.id}" target="_blank">Ver/baixar</a>
-      </div>`).join('') : '<div class="notice">Você ainda não possui certificados aprovados.</div>');
-})();
+const fEst = document.getElementById('formAddEstudo');
+if(fEst) fEst.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(fEst).entries());
+  await addStudy(data); fEst.reset(); await carregarDados();
+});
 </script>
 </body></html>

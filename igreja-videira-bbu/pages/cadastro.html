@@ -1,107 +1,55 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Cadastre-se - Igreja Videira BBU</title>
 <link rel="stylesheet" href="../assets/css/style.css">
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
-
-<!-- Config do site -->
 <script src="../config.js"></script>
-
-<!-- Inicialização + funções globais -->
-<script src="../assets/js/main.js"></script>
-
-</head>
-<body>
-
+<script type="module" src="../assets/js/main.js"></script>
+</head><body>
 <header class="topbar">
   <div class="container wrap">
     <div class="brand">
-      <img src="../assets/img/logo.png" class="logo">
-      <div class="title">
-        <h1 data-church-name></h1>
-        <small>Seja parte da família</small>
-      </div>
+      <img src="../assets/img/logo.png" class="logo" alt="Logo">
+      <div class="title"><h1 data-church-name></h1><small>Seja parte da família</small></div>
     </div>
-
-    <nav class="nav">
-      <a href="../index.html">Início</a>
-      <a href="login.html">Entrar</a>
+    <button id="menuToggle" class="hamburger" aria-label="Abrir menu"><span></span> Menu</button>
+    <nav id="mainNav" class="nav">
+      <a href="../index.html">Início</a><a href="login.html">Entrar</a>
     </nav>
   </div>
 </header>
 
-<main class="section">
-  <div class="container" style="max-width:600px;">
-    <div class="card">
-      <h3>Cadastro</h3>
-
-      <form id="formCadastro">
-
-        <input name="name" type="text" placeholder="Nome completo" required>
-        <input name="email" type="email" placeholder="E-mail" required>
-        <input name="phone" type="text" placeholder="Telefone (opcional)">
-        
-        <input name="password" type="password" placeholder="Senha" required>
-        <input name="password2" type="password" placeholder="Confirmar senha" required>
-
-        <input name="accessKey" type="text" placeholder="Chave de acesso (se tiver)">
-        
-        <button type="submit" class="btn btn-primary btn-full">Criar conta</button>
-      </form>
-
-      <div id="msgCadastro" style="margin-top:12px"></div>
-
-      <p style="margin-top:18px;">
-        Já tem conta? <a href="login.html">Entre aqui</a>
-      </p>
-
-    </div>
+<main class="section"><div class="container" style="max-width:600px">
+  <div class="card">
+    <h4>Cadastro de Membros</h4>
+    <form id="formCadastro">
+      <input required name="name" placeholder="Nome completo">
+      <input required name="email" type="email" placeholder="E-mail">
+      <input required name="password" type="password" placeholder="Crie uma senha (mín. 6)">
+      <button class="btn btn-primary btn-full" type="submit">Cadastrar</button>
+    </form>
+    <div id="msgCadastro" style="margin-top:10px"></div>
   </div>
-</main>
+</div></main>
 
-<footer class="footer">
-  <div class="container">
-    <small>© <span id="year"></span> Igreja Videira BBU</small>
-  </div>
-</footer>
+<footer class="footer"><div class="container"><small>© <span id="year"></span></small></div></footer>
+<script type="module">
+import { signUp } from "../assets/js/main.js";
+document.getElementById('year').textContent=new Date().getFullYear();
 
-<script>
-document.getElementById("year").textContent = new Date().getFullYear();
-
-document.getElementById("formCadastro").addEventListener("submit", async (e)=>{
+const form = document.getElementById('formCadastro');
+form.addEventListener('submit', async (e)=>{
   e.preventDefault();
-  
-  const f = new FormData(e.target);
-  const name = f.get("name").trim();
-  const email = f.get("email").trim();
-  const phone = f.get("phone").trim();
-  const password = f.get("password");
-  const password2 = f.get("password2");
-  const accessKey = f.get("accessKey").trim();
-  const msg = document.getElementById("msgCadastro");
-
-  if(password !== password2){
-    msg.innerHTML = '<div class="error">As senhas não conferem.</div>';
-    return;
-  }
-
+  const data = Object.fromEntries(new FormData(form).entries());
   try{
-    await window.App.signUp({name,email,password,accessKey,phone});
-    msg.innerHTML = '<div class="success">Cadastro realizado! Agora faça login.</div>';
-    e.target.reset();
+    if((data.password||"").length < 6) throw new Error("Senha deve ter 6+ caracteres");
+    const user = await signUp({ name: data.name, email: data.email, password: data.password });
+    document.getElementById('msgCadastro').innerHTML = '<div class="success">Cadastro realizado! Agora faça login.</div>';
+    form.reset();
+    setTimeout(()=> location.href="login.html", 1000);
   }catch(err){
-    msg.innerHTML = '<div class="error">Erro: '+err.message+'</div>';
+    document.getElementById('msgCadastro').innerHTML = '<div class="error">Erro: '+(err.message||err)+'</div>';
   }
 });
 </script>
-
-</body>
-</html>
+</body></html>

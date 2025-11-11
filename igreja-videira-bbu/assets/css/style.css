@@ -381,3 +381,52 @@ img{max-width:100%;display:block}
   .hero-video .grid{grid-template-columns:1fr}
   .nav{justify-content:flex-start}
 }
+/* MENU MOBILE */
+.menu-toggle {
+  display: none;
+  background: none;
+  font-size: 30px;
+  cursor: pointer;
+  border: none;
+  color: #fff;
+}
+
+/* Animação suave */
+.nav {
+  transition: max-height 0.35s ease, opacity 0.35s ease;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+}
+
+@media(max-width: 768px){
+  .menu-toggle {
+    display: block;
+  }
+
+  .nav {
+    width: 100%;
+    flex-direction: column;
+    background: #003f7f; /* azul videira */
+    padding: 0;
+    border-radius: 6px;
+    margin-top: 6px;
+  }
+
+  .nav.show {
+    max-height: 400px; /* altura aberta */
+    opacity: 1;
+    padding: 12px;
+  }
+
+  .nav a {
+    margin: 10px 0;
+    font-size: 18px;
+    color: #fff;
+  }
+
+  .nav a:hover {
+    color: #ffcf70; /* dourado suave */
+  }
+}
+

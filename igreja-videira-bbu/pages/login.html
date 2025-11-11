@@ -1,22 +1,23 @@
 <!DOCTYPE html><html lang="pt-BR"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Entrar - Igreja Videira BBU</title>
 <link rel="stylesheet" href="../assets/css/style.css">
-<!-- Firebase + Config + App -->
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
 <script src="../config.js"></script>
-<script defer src="../assets/js/main.js"></script>
+<script type="module" src="../assets/js/main.js"></script>
 </head><body>
-<header class="topbar"><div class="container wrap">
-  <div class="brand"><img src="../assets/img/logo.png" class="logo"><div class="title">
-    <h1 data-church-name></h1><small>Acesso de membros</small></div></div>
-  <nav class="nav">
-    <a href="../index.html">Início</a>
-    <a href="cadastro.html" class="btn btn-ghost">Cadastre-se</a>
-  </nav>
-</div></header>
+<header class="topbar">
+  <div class="container wrap">
+    <div class="brand">
+      <img src="../assets/img/logo.png" class="logo" alt="Logo">
+      <div class="title"><h1 data-church-name></h1><small>Acesso de membros</small></div>
+    </div>
+    <button id="menuToggle" class="hamburger" aria-label="Abrir menu"><span></span> Menu</button>
+    <nav id="mainNav" class="nav">
+      <a href="../index.html">Início</a><a href="cadastro.html">Cadastre-se</a>
+    </nav>
+  </div>
+</header>
 
 <main class="section"><div class="container" style="max-width:520px">
   <div class="card">
@@ -26,26 +27,37 @@
       <input required name="password" type="password" placeholder="Senha">
       <button class="btn btn-primary btn-full" type="submit">Entrar</button>
     </form>
+    <p style="margin-top:10px"><a href="#" id="resetLink">Esqueci minha senha</a></p>
     <div id="msgLogin" style="margin-top:10px"></div>
-    <p style="margin-top:8px">Ainda não tem conta? <a href="cadastro.html">Cadastre-se</a></p>
   </div>
 </div></main>
 
 <footer class="footer"><div class="container"><small>© <span id="year"></span></small></div></footer>
-<script>
+<script type="module">
+import { signIn, resetPass } from "../assets/js/main.js";
 document.getElementById('year').textContent=new Date().getFullYear();
 
 const form = document.getElementById('formLogin');
+const msg = document.getElementById('msgLogin');
+
 form.addEventListener('submit', async (e)=>{
   e.preventDefault();
   const data = Object.fromEntries(new FormData(form).entries());
-  const box = document.getElementById('msgLogin');
   try{
-    await window.App.signIn({email:data.email, password:data.password});
-    location.href = 'dashboard.html';
+    await signIn({ email: data.email, password: data.password });
+    msg.innerHTML = '<div class="success">Login ok. Redirecionando…</div>';
+    setTimeout(()=> location.href="dashboard.html", 600);
   }catch(err){
-    box.innerHTML = '<div class="error">Erro: '+(err.message||err)+'</div>';
+    msg.innerHTML = '<div class="error">Erro: '+(err.message||err)+'</div>';
   }
+});
+
+document.getElementById('resetLink').addEventListener('click', async (e)=>{
+  e.preventDefault();
+  const email = new FormData(form).get("email") || prompt("Digite seu e-mail:");
+  if(!email) return;
+  try{ await resetPass(email); alert("Enviamos um link de recuperação (se o e-mail existir)."); }
+  catch(err){ alert("Erro: "+(err.message||err)); }
 });
 </script>
 </body></html>

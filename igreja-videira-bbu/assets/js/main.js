@@ -1,120 +1,124 @@
-(function(){
-  const CFG = window.SITE_CONFIG;
+/* arquivo: assets/js/main.js  (USAR COMO ESCRITO, MÓDULO) */
+// =============================
+// CONFIG GLOBAL DO SITE
+// =============================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
+import {
+  getAuth, onAuthStateChanged, createUserWithEmailAndPassword,
+  signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import {
+  getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, query, where, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-  // ====== Firebase init ======
-  firebase.initializeApp(CFG.firebaseConfig);
-  const auth = firebase.auth();
-  const db   = firebase.firestore();
-  const st   = firebase.storage();
+// --------- Site config lida do config.js se existir ---------
+const CFG = (window.SITE_CONFIG ?? {
+  nomeIgreja: "Igreja Videira BBU",
+  endereco: "Endereço será configurado",
+  cultoPrincipal: "Domingos, 19h",
+  whatsapp: "",
+  youtubeVideoDestaque: ""
+});
 
-  // ====== Helpers ======
-  const qs  = (s,sc=document)=>sc.querySelector(s);
-  const qsa = (s,sc=document)=>Array.from(sc.querySelectorAll(s));
-  const setTxt = (sel,txt)=> qsa(sel).forEach(e=>e.textContent = txt);
+// --------- Firebase (DADOS QUE VOCÊ ME PASSOU) -------------
+const firebaseConfig = {
+  apiKey: "AIzaSyCuJMso4QQt2iF0sY5NV8kiVVahbRQ5uAI",
+  authDomain: "videira-bbu.firebaseapp.com",
+  projectId: "videira-bbu",
+  storageBucket: "videira-bbu.firebasestorage.app",
+  messagingSenderId: "788422997867",
+  appId: "1:788422997867:web:7a46de2ae6a10ae0e7fe2e",
+  measurementId: "G-VKM1VJ42M0"
+};
 
-  document.addEventListener('DOMContentLoaded', ()=>{
-    // Header info
-    setTxt('[data-church-name]', CFG.nomeIgreja || 'Igreja Videira');
-    const w = qs('[data-whatsapp-link]');
-    if(w && CFG.whatsapp) w.href = `https://wa.me/${CFG.whatsapp}`;
-    const end = qs('[data-endereco]'); if(end) end.textContent = CFG.endereco||'';
-    const cul = qs('[data-culto]');    if(cul) cul.textContent = CFG.cultoPrincipal||'';
+// --------- Inicialização ---------
+const app = initializeApp(firebaseConfig);
+try { getAnalytics(app); } catch(_) {} // analytics opcional (ignora em http)
+export const auth = getAuth(app);
+export const db = getFirestore(app);
 
-    // YouTube
-    const frame = qs('#youtube-embed');
-    if(frame){
-      frame.src = CFG.youtubeVideoDestaque
-        ? `https://www.youtube.com/embed/${CFG.youtubeVideoDestaque}`
-        : 'about:blank';
-    }
+// --------- Helpers UI ---------
+function $ (sel, root=document){ return root.querySelector(sel); }
+function $$ (sel, root=document){ return [...root.querySelectorAll(sel)]; }
+function setTextAll(attr, text){ $$(attr).forEach(el=>el.textContent=text); }
+
+// --------- Preenche textos dinâmicos (nome, endereço, culto, vídeo) ---------
+document.addEventListener("DOMContentLoaded", ()=>{
+  setTextAll("[data-church-name]", CFG.nomeIgreja || "Igreja Videira");
+  const end = $("[data-endereco]"); if(end) end.textContent = CFG.endereco || "—";
+  const cul = $("[data-culto]"); if(cul) cul.textContent = CFG.cultoPrincipal || "—";
+  $$( "[data-whatsapp-link]" ).forEach(a=>{
+    if(CFG.whatsapp){ a.href = `https://wa.me/${CFG.whatsapp}`; } else { a.style.display="none"; }
   });
-
-  // ====== Auth ======
-  async function signUp({name,email,password,accessKey,phone}) {
-    const cred = await auth.createUserWithEmailAndPassword(email,password);
-    await cred.user.updateProfile({ displayName: name });
-    // define role por chave (se informada)
-    let role = 'membro';
-    if(accessKey === CFG.pastorAccessKey) role = 'pastor';
-    else if(accessKey === CFG.memberAccessKey) role = 'membro';
-
-    await db.collection('members').doc(cred.user.uid).set({
-      name, email, phone: phone||'', role, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    return cred.user;
+  const yt = $("#youtube-embed");
+  if(yt){
+    const id = CFG.youtubeVideoDestaque || "";
+    yt.src = id ? `https://www.youtube.com/embed/${id}` : "about:blank";
   }
+});
 
-  async function signIn({email,password}) {
-    const cred = await auth.signInWithEmailAndPassword(email,password);
-    return cred.user;
+// --------- MENU MOBILE (hambúrguer) ---------
+document.addEventListener("click", (ev)=>{
+  const btn = ev.target.closest("#menuToggle");
+  if(btn){
+    const nav = $("#mainNav");
+    nav?.classList.toggle("open");
   }
+  if(ev.target.closest(".nav a")){ $("#mainNav")?.classList.remove("open"); }
+});
 
-  function signOut(){ return auth.signOut(); }
+// --------- AUTH API (corrige erro 'signUp undefined') ---------
+export async function signUp({name, email, password, role="membro"}) {
+  const cred = await createUserWithEmailAndPassword(auth, email, password);
+  if(name){ await updateProfile(cred.user, { displayName: name }); }
+  // cria perfil no Firestore
+  await setDoc(doc(db, "members", cred.user.uid), {
+    name: name || email.split("@")[0],
+    email, role, createdAt: serverTimestamp(), whatsapp: ""
+  });
+  return cred.user;
+}
 
-  async function currentUserDoc(){
-    const u = auth.currentUser;
-    if(!u) return null;
-    const doc = await db.collection('members').doc(u.uid).get();
-    return doc.exists ? {id:u.uid, ...doc.data()} : {id:u.uid, name:u.displayName||'', email:u.email, role:'membro'};
-  }
+export function signIn({email, password}) {
+  return signInWithEmailAndPassword(auth, email, password);
+}
+export function logOut(){ return signOut(auth); }
+export function resetPass(email){ return sendPasswordResetEmail(auth, email); }
 
-  // ====== Biblioteca ======
-  function listLibrary(){ return db.collection('library').orderBy('createdAt','desc').get().then(s=>s.docs.map(d=>({id:d.id,...d.data()}))); }
-  function addLibrary({title,author,link}){
-    return db.collection('library').add({ title, author:author||'', link:link||'', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-  }
+// --------- Biblioteca / Estudos (base) ---------
+export async function listLibrary(){
+  const snap = await getDocs(collection(db,"library"));
+  return snap.docs.map(d=>({id:d.id, ...d.data()}));
+}
+export async function addLibrary(item){
+  return addDoc(collection(db,"library"), {...item, createdAt: serverTimestamp()});
+}
+export async function listStudies(){
+  const snap = await getDocs(collection(db,"studySessions"));
+  return snap.docs.map(d=>({id:d.id, ...d.data()}));
+}
+export async function addStudy(item){
+  return addDoc(collection(db,"studySessions"), {...item, createdAt: serverTimestamp(), status:"aguardando"});
+}
 
-  // ====== Estudos ======
-  function listStudies(){ return db.collection('studies').orderBy('dueAt','asc').get().then(s=>s.docs.map(d=>({id:d.id,...d.data()}))); }
-  function addStudy({tema, dueAt, link}){
-    return db.collection('studies').add({
-      tema, link:link||'', dueAt: dueAt ? new Date(dueAt) : null,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+// --------- Guarda usuário (para dashboard) ---------
+onAuthStateChanged(auth, async (user)=>{
+  // mostra nome/perfil se existir boxUser
+  const box = $("#boxUser");
+  if(!box) return;
+  if(!user){
+    box.className="error";
+    box.innerHTML = "Você não está logado. <a href='login.html'>Entrar</a>";
+    return;
   }
-
-  // inscrições / conclusão
-  function enrollStudy(studyId, user){
-    return db.collection('completions').doc(`${studyId}_${user.id}`).set({
-      studyId, userId:user.id, userName:user.name, status:'inscrito',
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, {merge:true});
-  }
-  function completeStudy(studyId, user){
-    return db.collection('completions').doc(`${studyId}_${user.id}`).set({
-      status:'concluido',
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, {merge:true});
-  }
-  function listCompletionsByStudy(studyId){
-    return db.collection('completions').where('studyId','==',studyId).get().then(s=>s.docs.map(d=>({id:d.id,...d.data()})));
-  }
-  function listUserCompletions(userId){
-    return db.collection('completions').where('userId','==',userId).get().then(s=>s.docs.map(d=>({id:d.id,...d.data()})));
-  }
-
-  // Aprovação do pastor + certificado
-  async function approveCompletion(studyId, userId){
-    const id = `${studyId}_${userId}`;
-    await db.collection('completions').doc(id).set({
-      status:'aprovado',
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, {merge:true});
-    // cria certificado
-    const certRef = await db.collection('certificates').add({
-      studyId, userId, issuedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    return certRef.id;
-  }
-
-  // ====== Expor no escopo global ======
-  window.App = {
-    CFG, auth, db, st,
-    signUp, signIn, signOut, currentUserDoc,
-    listLibrary, addLibrary,
-    listStudies, addStudy,
-    enrollStudy, completeStudy,
-    listCompletionsByStudy, listUserCompletions,
-    approveCompletion
-  };
-})();
+  // pega perfil no Firestore:
+  const d = await getDoc(doc(db,"members",user.uid));
+  const prof = d.exists() ? d.data() : { name: user.displayName || user.email, role:"membro" };
+  localStorage.setItem("videira_user", JSON.stringify({ uid:user.uid, ...prof, email:user.email }));
+  box.className="success";
+  box.innerHTML = `Bem-vindo, <strong>${prof.name || user.email}</strong> — Perfil: ${prof.role}`;
+  // exibe painel do pastor se existir
+  const admin = $("#adminPanel");
+  if(admin){ admin.style.display = (prof.role==="pastor"?"block":"none"); }
+});
