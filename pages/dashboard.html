@@ -110,4 +110,10 @@ out.addEventListener('click', ()=> window.App.signOut().then(()=>location.href='
       </div>`).join('') : '<div class="notice">Você ainda não possui certificados aprovados.</div>');
 })();
 </script>
+<script>
+document.getElementById("menuToggle").addEventListener("click", () => {
+  document.getElementById("mobileMenu").classList.toggle("show");
+});
+</script>
+
 </body></html>

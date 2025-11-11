@@ -26,4 +26,10 @@
 <script type="module" src="assets/js/firebase.js"></script>
 <footer class="footer"><div class="container"><small>© <span id="year"></span></small></div></footer>
 <script>document.getElementById('year').textContent=new Date().getFullYear()</script>
+<script>
+document.getElementById("menuToggle").addEventListener("click", () => {
+  document.getElementById("mobileMenu").classList.toggle("show");
+});
+</script>
+
 </body></html>
